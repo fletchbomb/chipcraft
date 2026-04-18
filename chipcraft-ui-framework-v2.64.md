@@ -1,11 +1,20 @@
-# CHIPCRAFT — UI FRAMEWORK COMPANION v2.64
+[chipcraft-ui-framework-v2.65.md](https://github.com/user-attachments/files/26856247/chipcraft-ui-framework-v2.65.md)
+# CHIPCRAFT — UI FRAMEWORK COMPANION v2.65
+This companion defines how Chipcraft surfaces game state and accepts input across battle, rebuild, route, shop, and Dry Dock.
 
-This companion defines how Chipcraft surfaces game state and accepts input across battle, rebuild, route, shop, and Dry Dock. The canonical GDD remains the source of truth for combat rules, targeting, timing, shapes, power, statuses, chip behavior, and combat data. The prototype routing companion remains the source of truth for prototype scope, run flow, owned inventory, active layout, and shop / Dry Dock content. The NPC AI spec remains the source of truth for enemy evaluation, committed plans, and previewable enemy action sequences. UI consumes gameplay truth from those documents and does not re-implement gameplay logic.
+The canonical GDD remains the only source of truth for gameplay rules, terminology, construction legality, mode-independent state concepts, targeting, timing, shapes, power, statuses, chip behavior, and combat data.
+
+This file owns screen architecture, interaction flow, preview presentation, contextual surfaces, overlays, motion language, and implementation-facing UI state contracts.
+
+Mode companions may determine which surfaces, content sets, and actions are active in a given mode, but they do not become source-of-truth parents for UI behavior.
+
+The NPC AI spec may provide enemy commitment and preview input objects consumed by UI, but it does not own general UI behavior.
+
+UI consumes gameplay truth from those documents and does not re-implement gameplay logic.
 
 ---
 
 ## 1. Purpose
-
 This file owns:
 - screen layout and information placement
 - interaction states and input flow
@@ -84,7 +93,7 @@ Full-screen overlays for glossary, deep chip detail, and expanded log views.
 ### 3.6 Rebuild Always-Visible Information
 - current frame geometry
 - active layout on ship
-- owned chip inventory
+- available chip inventory for the active mode
 - live power feedback on ship
 - continue control
 
@@ -264,9 +273,12 @@ Both battle flyouts:
 - animate out in about 140–180ms when context clears
 
 ### 8.5 Flyout Composition Rule
-Flyout composition is wide rather than tall. Chip art carries about 40% of the internal visual emphasis, with the remaining space used for compact stats, state icons, and one short line of contextual information.
+Flyout composition is wide rather than tall.
+
+Chip art carries about 40% of the internal visual emphasis, with the remaining space used for compact stats, state icons, and one short line of contextual information.
 
 ### 8.6 Friendly Flyout Content
+
 #### Inspect Focus
 - focused-detail ownership fields
 - concise effect summary
@@ -288,6 +300,7 @@ Flyout composition is wide rather than tall. Chip art carries about 40% of the i
 - cancel
 
 ### 8.7 Enemy Flyout Content
+
 #### Inspect Focus
 - focused-detail ownership fields
 - concise effect summary
@@ -343,7 +356,9 @@ Normal board presentation identifies chips through art, stat layout, and visual 
 Pylon spread appears through colored glow on affected chips and a dedicated power-state icon. Powered-state glows use the shared motion-and-feedback language and remain alive without obscuring the board.
 
 ### 9.6 Ready-State Presentation
-Ready Active chips use a dedicated energy/readiness glow. Readiness glows and state changes use the shared motion-and-feedback language.
+Ready Active chips use a dedicated energy/readiness glow.
+
+Readiness glows and state changes use the shared motion-and-feedback language.
 
 ### 9.7 Preview Presentation
 Preview keeps the source visibly focused, marks the target clearly, overlays the affected shape on the board, and displays predicted outcomes on affected chips.
@@ -369,7 +384,9 @@ Rebuild lets the player assemble the active layout quickly, understand legal pla
 - continue control remains visible
 
 ### 10.3 Rebuild Context Surface
-Rebuild uses the shared flyout system on the lower-right. It shows the currently focused chip from either inventory or ship and reuses the same chip-detail logic as battle focus, adapted for rebuild.
+Rebuild uses the shared flyout system on the lower-right.
+
+It shows the currently focused chip from either inventory or ship and reuses the same chip-detail logic as battle focus, adapted for rebuild.
 
 ### 10.4 Interaction Flow
 - drag chip from right-side inventory to left-side ship to place
@@ -400,7 +417,7 @@ Shop and Dry Dock use one comparison surface pattern:
 Shop instantiates the shared comparison pattern for purchases and offer evaluation.
 
 ### 11.3 Dry Dock
-Dry Dock instantiates the shared comparison pattern for repair, Pylon offer, frame upgrade, and Core upgrade actions defined by the prototype routing companion.
+Dry Dock instantiates the shared comparison pattern for repair, Pylon offer, frame upgrade, and Core upgrade actions available in the active mode.
 
 ### 11.4 Route
 Route is a simple selection surface that owns:
@@ -413,7 +430,6 @@ Route is a simple selection surface that owns:
 ---
 
 ## 12. Details Consistency
-
 Battle explanation begins on the board, expands through contextual surfaces, and resolves into full-screen overlays only when the player requests deeper detail.
 
 ---
@@ -432,7 +448,7 @@ BattleUIState {
   previewTargetSpaceId: string | null
   affectedSpaceIds: string[]
   affectedChipIds: string[]
-  predictedOutcomesByChipId: Record<string, PredictedOutcome>
+  predictedOutcomesByChipId: Record
   confirmAnchor: {
     kind: 'chip' | 'space' | 'source' | 'context'
     id: string | null
@@ -476,5 +492,4 @@ Short chip text, badge stacks, formatted log lines, preview summaries, and overf
 ---
 
 ## 14. Open Questions
-
 No structural UI questions remain open in this version. Future updates may tune exact art assets, easing curves, and breakpoint tokens without changing the interaction contract.
