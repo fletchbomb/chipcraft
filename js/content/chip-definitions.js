@@ -1,1 +1,49 @@
-export const CHIP_DEFINITIONS = [];
+import { CHIP_TYPE_IDS } from './ids.js';
+
+export const CHIP_DEFINITIONS = [
+  {
+    id: CHIP_TYPE_IDS.CORE_SCOUT,
+    name: 'Core (Scout)',
+    category: 'infrastructure',
+    chipClass: 'passive',
+    hp: 16,
+    energy: 3,
+    primaryStat: 'none',
+    target: 'none',
+    shape: 'self',
+  },
+  {
+    id: CHIP_TYPE_IDS.CANNON_I,
+    name: 'Cannon I',
+    category: 'attack',
+    chipClass: 'active',
+    hp: 4,
+    energy: 1,
+    primaryStat: 'damage',
+    target: 'enemy-frontier',
+    shape: 'dot1',
+  },
+  {
+    id: CHIP_TYPE_IDS.PYLON_RED_I,
+    name: 'Pylon Red I',
+    category: 'infrastructure',
+    chipClass: 'passive',
+    hp: 3,
+    energy: 0,
+    primaryStat: 'none',
+    target: 'none',
+    shape: 'none',
+    pylonColor: 'red',
+  },
+  {
+    id: CHIP_TYPE_IDS.RELAY_I,
+    name: 'Relay I',
+    category: 'infrastructure',
+    chipClass: 'passive',
+    hp: 3,
+    energy: 0,
+    primaryStat: 'none',
+    target: 'none',
+    shape: 'none',
+  },
+];
