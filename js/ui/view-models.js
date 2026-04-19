@@ -1,3 +1,7 @@
+function formatSpaceList(spaces) {
+  return spaces.map((space) => `(${space.col},${space.row})`).join(', ');
+}
+
 export function buildScreenViewModel(state) {
   return {
     route: state.route,
