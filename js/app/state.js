@@ -6,7 +6,6 @@ import {
   validateLaunchLayout,
   validateShipLayout,
 } from '../engine/construction.js';
-import { getAffectedSpacesFromShape, getFrontierSpaces } from '../engine/geometry.js';
 import { CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
 
 function createSeedSide(frameId) {
@@ -21,17 +20,6 @@ function createSeedSide(frameId) {
   return sideSetup;
 }
 
-function createGeometryPreview(sideSetup, content) {
-  const frontierSpaces = getFrontierSpaces(sideSetup, content);
-  const firstFrontier = frontierSpaces[0] ?? { col: 2, row: 3 };
-
-  return {
-    frontierSpaces,
-    dotPreview: getAffectedSpacesFromShape(firstFrontier.col, firstFrontier.row, 'dot1'),
-    plusPreview: getAffectedSpacesFromShape(firstFrontier.col, firstFrontier.row, 'plus1'),
-  };
-}
-
 export function createInitialAppState() {
   const content = loadContentCatalog();
 
@@ -39,7 +27,7 @@ export function createInitialAppState() {
   const enemySetup = createSeedSide(FRAME_IDS.SCOUT);
 
   return {
-    appVersion: '0.4.0-geometry-foundation',
+    appVersion: '0.3.0-construction-foundation',
     route: 'battle-test-setup',
     mode: 'battle-test',
     content,
@@ -52,10 +40,6 @@ export function createInitialAppState() {
       playerLaunch: validateLaunchLayout(playerSetup, content),
       enemyLayout: validateShipLayout(enemySetup, content),
       enemyLaunch: validateLaunchLayout(enemySetup, content),
-    },
-    geometry: {
-      player: createGeometryPreview(playerSetup, content),
-      enemy: createGeometryPreview(enemySetup, content),
     },
   };
 }

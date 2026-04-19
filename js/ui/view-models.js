@@ -20,10 +20,5 @@ export function buildScreenViewModel(state) {
     enemyLaunchValid: state.validation.enemyLaunch.isValid,
     playerLaunchErrors: state.validation.playerLaunch.errors,
     enemyLaunchErrors: state.validation.enemyLaunch.errors,
-    playerFrontierCount: state.geometry.player.frontierSpaces.length,
-    enemyFrontierCount: state.geometry.enemy.frontierSpaces.length,
-    playerFrontierList: formatSpaceList(state.geometry.player.frontierSpaces),
-    playerDotPreview: formatSpaceList(state.geometry.player.dotPreview),
-    playerPlusPreview: formatSpaceList(state.geometry.player.plusPreview),
   };
 }
