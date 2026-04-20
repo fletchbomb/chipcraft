@@ -24,17 +24,59 @@ function renderCombatants(sideState, label) {
 
 export function renderBattleScreen(appState, vm, controls) {
   const battle = appState.combat.current;
+  const actionPreview = appState.combat.actionPreview;
+  const isPlayerActivation = battle.turnOwner === 'player' && battle.phase === 'activation' && !battle.winner;
   const section = document.createElement('section');
   section.className = 'panel';
+
+  const actorButtons = actionPreview.usable
+    .map(
+      (chip) => `
+      <button
+        type="button"
+        class="route-button${appState.ui.battleActingChipId === chip.chipInstanceId ? ' is-active' : ''}"
+        data-actor="${chip.chipInstanceId}">
+        ${chip.chipTypeId}
+      </button>
+    `,
+    )
+    .join('');
+
+  const targetButtons = actionPreview.legalTargets
+    .map(
+      (target) => `
+      <button
+        type="button"
+        class="route-button${appState.ui.battleTargetChipId === target.chipInstanceId ? ' is-active' : ''}"
+        data-target="${target.chipInstanceId}">
+        ${target.chipInstanceId}
+      </button>
+    `,
+    )
+    .join('');
+
   section.innerHTML = `
     <h2>Battle Sandbox</h2>
     <p>Round <strong>${battle.round}</strong> · Turn <strong>${battle.turnOwner}</strong> · Phase <strong>${battle.phase}</strong></p>
     <p>Winner: <strong>${battle.winner ?? 'none'}</strong></p>
     <div class="button-row">
-      <button type="button" class="route-button" data-action="step">Advance Phase</button>
+      <button type="button" class="route-button" data-action="step">Advance to Player Action</button>
       <button type="button" class="route-button" data-action="turn">Skip to Next Turn</button>
       <button type="button" class="route-button" data-action="reset">Reset Battle</button>
     </div>
+    <h3>Player Action</h3>
+    <p>${isPlayerActivation ? 'Select actor, then target, then confirm.' : 'Waiting for player activation phase.'}</p>
+    <div class="button-row">${actorButtons || '<span class="hint-text">No usable active chips.</span>'}</div>
+    <div class="button-row">${targetButtons || '<span class="hint-text">No legal targets selected.</span>'}</div>
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="confirm" ${
+        isPlayerActivation && actionPreview.projected ? '' : 'disabled'
+      }>Confirm Action</button>
+      <button type="button" class="route-button" data-action="clear">Clear Selection</button>
+    </div>
+    <p>Projected damage: <strong>${actionPreview.projected?.damage ?? 0}</strong> · Predicted HP: <strong>${
+      actionPreview.projected?.predictedTargetHp ?? 'n/a'
+    }</strong></p>
     <p>AI Choice Preview: <strong>${vm.aiChoice}</strong> (score ${vm.aiScore})</p>
     <p>Recent events: <strong>${vm.aiLogTail || vm.combatLogTail || 'none'}</strong></p>
     <div class="battle-grid">
@@ -46,6 +88,14 @@ export function renderBattleScreen(appState, vm, controls) {
   section.querySelector('[data-action="step"]')?.addEventListener('click', controls.stepBattle);
   section.querySelector('[data-action="turn"]')?.addEventListener('click', controls.skipToNextTurn);
   section.querySelector('[data-action="reset"]')?.addEventListener('click', controls.resetBattle);
+  section.querySelector('[data-action="confirm"]')?.addEventListener('click', controls.confirmAction);
+  section.querySelector('[data-action="clear"]')?.addEventListener('click', controls.clearActionSelection);
+  section.querySelectorAll('[data-actor]').forEach((button) => {
+    button.addEventListener('click', () => controls.chooseBattleActor(button.dataset.actor));
+  });
+  section.querySelectorAll('[data-target]').forEach((button) => {
+    button.addEventListener('click', () => controls.chooseBattleTarget(button.dataset.target));
+  });
 
   return section;
 }

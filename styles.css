@@ -215,3 +215,9 @@ body {
 .ai-select {
   appearance: auto;
 }
+
+.hint-text {
+  color: var(--muted);
+  font-size: 0.9rem;
+  align-self: center;
+}

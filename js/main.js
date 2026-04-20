@@ -1,10 +1,15 @@
 import { APP_ROUTES, isValidRoute } from './app/routes.js';
 import {
+  advanceToPlayerActivation,
+  clearBattleSelection,
+  confirmBattleAction,
   createInitialAppState,
   launchBattle,
   lockSetupSide,
   placeChipFromPalette,
   resetBattlePhase,
+  selectBattleActor,
+  selectBattleTarget,
   setEnemyAiPreset,
   setUiSelection,
   stepBattlePhase,
@@ -66,7 +71,7 @@ function launch() {
 }
 
 function stepBattle() {
-  appState = stepBattlePhase(appState, 1);
+  appState = advanceToPlayerActivation(appState);
   render();
 }
 
@@ -77,6 +82,27 @@ function skipToNextTurn() {
 
 function resetBattle() {
   appState = resetBattlePhase(appState);
+  render();
+}
+
+function chooseBattleActor(chipInstanceId) {
+  appState = selectBattleActor(appState, chipInstanceId);
+  render();
+}
+
+function chooseBattleTarget(chipInstanceId) {
+  appState = selectBattleTarget(appState, chipInstanceId);
+  render();
+}
+
+function clearActionSelection() {
+  appState = clearBattleSelection(appState);
+  render();
+}
+
+function confirmAction() {
+  appState = confirmBattleAction(appState);
+  appState = advanceToPlayerActivation(appState);
   render();
 }
 
@@ -93,6 +119,10 @@ function render() {
     stepBattle,
     skipToNextTurn,
     resetBattle,
+    chooseBattleActor,
+    chooseBattleTarget,
+    clearActionSelection,
+    confirmAction,
     routes: APP_ROUTES,
   });
 }
