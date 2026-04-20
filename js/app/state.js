@@ -15,7 +15,8 @@ import {
   getLegalTargetsForChip,
   getUsableActiveChips,
 } from '../engine/actions.js';
-import { CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
+import { applyEnemyAction } from '../engine/ai.js';
+import { AI_PRESET_IDS, CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
 
 function createSeedSide(frameId) {
   let sideSetup = createSideSetup(frameId);
@@ -114,6 +115,22 @@ function createActionPreview(battleState, content) {
   };
 }
 
+function createAiPreview(battleState, content) {
+  const enemyTurnStart = advanceCombatPhase(battleState);
+  const enemyEnergyGain = advanceCombatPhase(enemyTurnStart);
+  const enemyAuto = advanceCombatPhase(enemyEnergyGain);
+  const enemyActivation = advanceCombatPhase(enemyAuto);
+
+  const result = applyEnemyAction(enemyActivation, content, AI_PRESET_IDS.AGGRESSOR);
+
+  return {
+    enemyActivationState: enemyActivation,
+    choice: result.choice,
+    postEnemyAction: result.nextState,
+    logTail: result.nextState.actionLog.slice(-4),
+  };
+}
+
 function createCombatPreview(snapshot, content) {
   const initial = initializeBattleState(snapshot, content);
   const phase1 = advanceCombatPhase(initial);
@@ -122,11 +139,13 @@ function createCombatPreview(snapshot, content) {
   const phase4 = advanceCombatPhase(phase3);
 
   const actionPreview = createActionPreview(phase4, content);
+  const aiPreview = createAiPreview(phase4, content);
 
   return {
     current: phase4,
     logTail: phase4.actionLog.slice(-5),
     actionPreview,
+    aiPreview,
   };
 }
 
@@ -138,7 +157,7 @@ export function createInitialAppState() {
   const snapshot = { playerSetup, enemySetup };
 
   return {
-    appVersion: '0.7.0-actions-foundation',
+    appVersion: '0.8.0-ai-foundation',
     route: 'battle-test-setup',
     mode: 'battle-test',
     content,

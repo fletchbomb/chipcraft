@@ -13,6 +13,7 @@ function formatChipPower(chipPowerRows) {
 
 export function buildScreenViewModel(state) {
   const actionPreview = state.combat.actionPreview;
+  const aiPreview = state.combat.aiPreview;
 
   return {
     route: state.route,
@@ -53,5 +54,11 @@ export function buildScreenViewModel(state) {
     projectedHp: actionPreview.projected?.predictedTargetHp ?? null,
     projectedDisabled: actionPreview.projected?.predictedTargetDisabled ?? false,
     postActivationLogTail: actionPreview.postActivation.actionLog.slice(-2).join(' | '),
+    aiHasChoice: Boolean(aiPreview.choice),
+    aiChoice: aiPreview.choice
+      ? `${aiPreview.choice.actingChipInstanceId} -> ${aiPreview.choice.targetChipInstanceId}`
+      : 'none',
+    aiScore: aiPreview.choice?.score ?? 0,
+    aiLogTail: aiPreview.logTail.join(' | '),
   };
 }

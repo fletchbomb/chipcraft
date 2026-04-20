@@ -14,7 +14,7 @@ export function renderBuildScreen(appState) {
   const panel = document.createElement('section');
   panel.className = 'panel';
   panel.innerHTML = `
-    <h1>Chipcraft Battle Test — Action & Preview Foundations</h1>
+    <h1>Chipcraft Battle Test — AI Foundations</h1>
     <p>Route: <strong>${vm.route}</strong></p>
     <p>Mode: <strong>${vm.mode}</strong></p>
     <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
@@ -58,13 +58,19 @@ export function renderBuildScreen(appState) {
     <p>Projected target disabled: <strong>${vm.projectedDisabled}</strong></p>
     <p>Post-activation log tail: <strong>${vm.postActivationLogTail || 'none'}</strong></p>
 
+    <h2>Enemy AI Preview</h2>
+    <p>AI has choice: <strong>${vm.aiHasChoice}</strong></p>
+    <p>AI chosen action: <strong>${vm.aiChoice}</strong></p>
+    <p>AI score: <strong>${vm.aiScore}</strong></p>
+    <p>AI log tail: <strong>${vm.aiLogTail || 'none'}</strong></p>
+
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
 
     <p><strong>Enemy launch errors</strong></p>
     <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
 
-    <span class="pill">Action legality + projected preview active</span>
+    <span class="pill">AI action selection active</span>
   `;
   return panel;
 }
