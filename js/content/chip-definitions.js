@@ -20,6 +20,7 @@ export const CHIP_DEFINITIONS = [
     hp: 4,
     energy: 1,
     primaryStat: 'damage',
+    damage: 3,
     target: 'enemy-frontier',
     shape: 'dot1',
   },

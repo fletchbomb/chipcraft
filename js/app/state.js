@@ -9,6 +9,12 @@ import {
 import { getAffectedSpacesFromShape, getFrontierSpaces } from '../engine/geometry.js';
 import { getPowerColorsByChip, getPoweredStateTagsForChip } from '../engine/power.js';
 import { advanceCombatPhase, initializeBattleState } from '../engine/combat.js';
+import {
+  applyActivation,
+  buildProjectedResolution,
+  getLegalTargetsForChip,
+  getUsableActiveChips,
+} from '../engine/actions.js';
 import { CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
 
 function createSeedSide(frameId) {
@@ -59,14 +65,68 @@ function createPowerPreview(sideSetup, content) {
   };
 }
 
+function createActionPreview(battleState, content) {
+  const usable = getUsableActiveChips(battleState, 'player', content);
+  const actingChip = usable[0] ?? null;
+
+  if (!actingChip) {
+    return {
+      usable,
+      legalTargets: [],
+      projected: null,
+      postActivation: battleState,
+    };
+  }
+
+  const legalTargets = getLegalTargetsForChip(battleState, 'player', actingChip.chipInstanceId, content);
+  const firstTarget = legalTargets[0] ?? null;
+
+  if (!firstTarget) {
+    return {
+      usable,
+      legalTargets,
+      projected: null,
+      postActivation: battleState,
+    };
+  }
+
+  const projected = buildProjectedResolution(
+    battleState,
+    'player',
+    actingChip.chipInstanceId,
+    firstTarget.chipInstanceId,
+    content,
+  );
+
+  const postActivation = applyActivation(
+    battleState,
+    'player',
+    actingChip.chipInstanceId,
+    firstTarget.chipInstanceId,
+    content,
+  );
+
+  return {
+    usable,
+    legalTargets,
+    projected,
+    postActivation,
+  };
+}
+
 function createCombatPreview(snapshot, content) {
   const initial = initializeBattleState(snapshot, content);
   const phase1 = advanceCombatPhase(initial);
   const phase2 = advanceCombatPhase(phase1);
+  const phase3 = advanceCombatPhase(phase2);
+  const phase4 = advanceCombatPhase(phase3);
+
+  const actionPreview = createActionPreview(phase4, content);
 
   return {
-    current: phase2,
-    logTail: phase2.actionLog.slice(-5),
+    current: phase4,
+    logTail: phase4.actionLog.slice(-5),
+    actionPreview,
   };
 }
 
@@ -78,7 +138,7 @@ export function createInitialAppState() {
   const snapshot = { playerSetup, enemySetup };
 
   return {
-    appVersion: '0.6.0-combat-foundation',
+    appVersion: '0.7.0-actions-foundation',
     route: 'battle-test-setup',
     mode: 'battle-test',
     content,

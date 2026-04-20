@@ -14,7 +14,7 @@ export function renderBuildScreen(appState) {
   const panel = document.createElement('section');
   panel.className = 'panel';
   panel.innerHTML = `
-    <h1>Chipcraft Battle Test — Combat Foundations</h1>
+    <h1>Chipcraft Battle Test — Action & Preview Foundations</h1>
     <p>Route: <strong>${vm.route}</strong></p>
     <p>Mode: <strong>${vm.mode}</strong></p>
     <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
@@ -50,13 +50,21 @@ export function renderBuildScreen(appState) {
     <p>Winner: <strong>${vm.combatWinner ?? 'none'}</strong></p>
     <p>Log tail: <strong>${vm.combatLogTail || 'none'}</strong></p>
 
+    <h2>Action + Preview</h2>
+    <p>Usable active chips: <strong>${vm.usableActiveCount}</strong></p>
+    <p>Legal targets: <strong>${vm.legalTargetCount}</strong></p>
+    <p>Projected damage: <strong>${vm.projectedDamage}</strong></p>
+    <p>Projected target HP: <strong>${vm.projectedHp ?? 'n/a'}</strong></p>
+    <p>Projected target disabled: <strong>${vm.projectedDisabled}</strong></p>
+    <p>Post-activation log tail: <strong>${vm.postActivationLogTail || 'none'}</strong></p>
+
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
 
     <p><strong>Enemy launch errors</strong></p>
     <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
 
-    <span class="pill">Combat state machine active</span>
+    <span class="pill">Action legality + projected preview active</span>
   `;
   return panel;
 }

@@ -12,6 +12,8 @@ function formatChipPower(chipPowerRows) {
 }
 
 export function buildScreenViewModel(state) {
+  const actionPreview = state.combat.actionPreview;
+
   return {
     route: state.route,
     mode: state.mode,
@@ -45,5 +47,11 @@ export function buildScreenViewModel(state) {
     enemyEnergy: state.combat.current.enemy.energy,
     combatWinner: state.combat.current.winner,
     combatLogTail: state.combat.logTail.join(' | '),
+    usableActiveCount: actionPreview.usable.length,
+    legalTargetCount: actionPreview.legalTargets.length,
+    projectedDamage: actionPreview.projected?.damage ?? 0,
+    projectedHp: actionPreview.projected?.predictedTargetHp ?? null,
+    projectedDisabled: actionPreview.projected?.predictedTargetDisabled ?? false,
+    postActivationLogTail: actionPreview.postActivation.actionLog.slice(-2).join(' | '),
   };
 }
