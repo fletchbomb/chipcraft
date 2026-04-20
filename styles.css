@@ -45,6 +45,36 @@ body {
   border-style: dashed;
 }
 
+.nav-panel {
+  position: sticky;
+  top: 8px;
+  z-index: 1;
+}
+
+.button-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.route-button {
+  background: #16213f;
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.route-button:hover {
+  border-color: var(--accent);
+}
+
+.route-button.is-active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 .panel h1,
 .panel h2,
 .panel h3 {

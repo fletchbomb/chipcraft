@@ -25,7 +25,38 @@ function renderMetaPanel(appState) {
   return section;
 }
 
-export function renderApp(root, appState) {
+function renderNav(appState, controls) {
+  const nav = document.createElement('section');
+  nav.className = 'panel panel-sub nav-panel';
+
+  nav.innerHTML = `
+    <h2>Mode Surface</h2>
+    <p>Current route: <strong>${appState.route}</strong></p>
+  `;
+
+  const buttonRow = document.createElement('div');
+  buttonRow.className = 'button-row';
+
+  const entries = [
+    ['Build', controls.routes.BUILD],
+    ['Battle', controls.routes.BATTLE],
+    ['Loop', controls.routes.LOOP],
+  ];
+
+  for (const [label, route] of entries) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `route-button${appState.route === route ? ' is-active' : ''}`;
+    button.textContent = label;
+    button.addEventListener('click', () => controls.setRoute(route));
+    buttonRow.appendChild(button);
+  }
+
+  nav.appendChild(buttonRow);
+  return nav;
+}
+
+export function renderApp(root, appState, controls) {
   root.innerHTML = '';
 
   const shell = document.createElement('div');
@@ -33,9 +64,19 @@ export function renderApp(root, appState) {
 
   const vm = buildScreenViewModel(appState);
 
-  shell.appendChild(renderBuildScreen(appState));
-  shell.appendChild(renderBattleScreen(vm));
-  shell.appendChild(renderMetaPanel(appState));
+  shell.appendChild(renderNav(appState, controls));
+
+  if (appState.route === controls.routes.BUILD) {
+    shell.appendChild(renderBuildScreen(appState));
+  }
+
+  if (appState.route === controls.routes.BATTLE) {
+    shell.appendChild(renderBattleScreen(vm));
+  }
+
+  if (appState.route === controls.routes.LOOP) {
+    shell.appendChild(renderMetaPanel(appState));
+  }
 
   root.appendChild(shell);
 }

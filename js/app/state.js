@@ -31,6 +31,7 @@ import {
   saveAppState,
   saveScenarioSnapshot,
 } from './persistence.js';
+import { APP_ROUTES } from './routes.js';
 import { AI_PRESET_IDS, CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
 
 function createMemoryStorage() {
@@ -234,8 +235,8 @@ export function createInitialAppState() {
   const battleTest = createBattleTestLoopPreview(playerSetup, enemySetup, content);
 
   return {
-    appVersion: '1.0.0-persistence-loop-foundation',
-    route: 'battle-test-setup',
+    appVersion: '1.1.0-route-surface-foundation',
+    route: APP_ROUTES.BUILD,
     mode: 'battle-test',
     content,
     scenario: snapshot,
