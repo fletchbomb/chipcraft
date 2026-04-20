@@ -2,6 +2,15 @@ function formatSpaceList(spaces) {
   return spaces.map((space) => `(${space.col},${space.row})`).join(', ');
 }
 
+function formatChipPower(chipPowerRows) {
+  return chipPowerRows
+    .map((chip) => {
+      const colorText = chip.colors.length > 0 ? chip.colors.join('/') : 'none';
+      return `${chip.chipTypeId}: ${colorText}`;
+    })
+    .join(' | ');
+}
+
 export function buildScreenViewModel(state) {
   return {
     route: state.route,
@@ -20,5 +29,14 @@ export function buildScreenViewModel(state) {
     enemyLaunchValid: state.validation.enemyLaunch.isValid,
     playerLaunchErrors: state.validation.playerLaunch.errors,
     enemyLaunchErrors: state.validation.enemyLaunch.errors,
+    playerFrontierCount: state.geometry.player.frontierSpaces.length,
+    enemyFrontierCount: state.geometry.enemy.frontierSpaces.length,
+    playerFrontierList: formatSpaceList(state.geometry.player.frontierSpaces),
+    playerDotPreview: formatSpaceList(state.geometry.player.dotPreview),
+    playerPlusPreview: formatSpaceList(state.geometry.player.plusPreview),
+    playerPoweredCount: state.power.player.poweredChipCount,
+    enemyPoweredCount: state.power.enemy.poweredChipCount,
+    playerPowerSummary: formatChipPower(state.power.player.chips),
+    enemyPowerSummary: formatChipPower(state.power.enemy.chips),
   };
 }

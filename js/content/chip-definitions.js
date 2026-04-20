@@ -34,6 +34,7 @@ export const CHIP_DEFINITIONS = [
     target: 'none',
     shape: 'none',
     pylonColor: 'red',
+    pylonCoverageShape: 'plus1',
   },
   {
     id: CHIP_TYPE_IDS.RELAY_I,
@@ -45,5 +46,6 @@ export const CHIP_DEFINITIONS = [
     primaryStat: 'none',
     target: 'none',
     shape: 'none',
+    isRelay: true,
   },
 ];
