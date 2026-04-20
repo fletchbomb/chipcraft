@@ -4,10 +4,15 @@ import {
   clearBattleSelection,
   confirmBattleAction,
   createInitialAppState,
+  editLockedScenario,
   launchBattle,
+  loadScenario,
   lockSetupSide,
+  newScenario,
   placeChipFromPalette,
   resetBattlePhase,
+  rematchLockedScenario,
+  saveScenario,
   selectBattleActor,
   selectBattleTarget,
   setEnemyAiPreset,
@@ -106,6 +111,31 @@ function confirmAction() {
   render();
 }
 
+function rematchScenario() {
+  appState = rematchLockedScenario(appState);
+  render();
+}
+
+function editScenario() {
+  appState = editLockedScenario(appState);
+  render();
+}
+
+function startNewScenario() {
+  appState = newScenario(appState);
+  render();
+}
+
+function saveCurrentScenario() {
+  appState = saveScenario(appState);
+  render();
+}
+
+function loadSavedScenario() {
+  appState = loadScenario(appState);
+  render();
+}
+
 function render() {
   renderApp(root, appState, {
     setRoute,
@@ -123,6 +153,11 @@ function render() {
     chooseBattleTarget,
     clearActionSelection,
     confirmAction,
+    rematchScenario,
+    editScenario,
+    startNewScenario,
+    saveCurrentScenario,
+    loadSavedScenario,
     routes: APP_ROUTES,
   });
 }

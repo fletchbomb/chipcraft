@@ -64,6 +64,18 @@ export function renderBattleScreen(appState, vm, controls) {
       <button type="button" class="route-button" data-action="turn">Skip to Next Turn</button>
       <button type="button" class="route-button" data-action="reset">Reset Battle</button>
     </div>
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="rematch" ${
+        appState.loop.hasLockedSnapshot ? '' : 'disabled'
+      }>Rematch</button>
+      <button type="button" class="route-button" data-action="edit" ${
+        appState.loop.hasLockedSnapshot ? '' : 'disabled'
+      }>Edit Scenario</button>
+      <button type="button" class="route-button" data-action="new">New Scenario</button>
+      <button type="button" class="route-button" data-action="save">Save Scenario</button>
+      <button type="button" class="route-button" data-action="load">Load Scenario</button>
+    </div>
+    <p>Scenario status: <strong>${appState.loop.persistenceNotice || 'none'}</strong></p>
     <h3>Player Action</h3>
     <p>${isPlayerActivation ? 'Select actor, then target, then confirm.' : 'Waiting for player activation phase.'}</p>
     <div class="button-row">${actorButtons || '<span class="hint-text">No usable active chips.</span>'}</div>
@@ -90,6 +102,11 @@ export function renderBattleScreen(appState, vm, controls) {
   section.querySelector('[data-action="reset"]')?.addEventListener('click', controls.resetBattle);
   section.querySelector('[data-action="confirm"]')?.addEventListener('click', controls.confirmAction);
   section.querySelector('[data-action="clear"]')?.addEventListener('click', controls.clearActionSelection);
+  section.querySelector('[data-action="rematch"]')?.addEventListener('click', controls.rematchScenario);
+  section.querySelector('[data-action="edit"]')?.addEventListener('click', controls.editScenario);
+  section.querySelector('[data-action="new"]')?.addEventListener('click', controls.startNewScenario);
+  section.querySelector('[data-action="save"]')?.addEventListener('click', controls.saveCurrentScenario);
+  section.querySelector('[data-action="load"]')?.addEventListener('click', controls.loadSavedScenario);
   section.querySelectorAll('[data-actor]').forEach((button) => {
     button.addEventListener('click', () => controls.chooseBattleActor(button.dataset.actor));
   });

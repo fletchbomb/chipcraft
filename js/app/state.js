@@ -66,6 +66,13 @@ function createSeedSide(frameId) {
   return sideSetup;
 }
 
+function createDefaultScenario() {
+  return {
+    playerSetup: createSeedSide(FRAME_IDS.SCOUT),
+    enemySetup: createSeedSide(FRAME_IDS.SCOUT),
+  };
+}
+
 function createGeometryPreview(sideSetup, content) {
   const frontierSpaces = getFrontierSpaces(sideSetup, content);
   const firstFrontier = frontierSpaces[0] ?? { col: 2, row: 3 };
@@ -272,6 +279,11 @@ function deriveState({ route, content, scenario, ui }) {
       enemyLocked: ui.enemyLocked,
       canLaunch,
     },
+    loop: {
+      hasLockedSnapshot: Boolean(ui.lockedScenarioSnapshot),
+      lockedScenarioId: ui.lockedScenarioSnapshot?.scenario?.scenarioId ?? null,
+      persistenceNotice: ui.persistenceNotice ?? '',
+    },
     geometry: {
       player: createGeometryPreview(playerSetup, content),
       enemy: createGeometryPreview(enemySetup, content),
@@ -288,10 +300,7 @@ function deriveState({ route, content, scenario, ui }) {
 
 export function createInitialAppState() {
   const content = loadContentCatalog();
-  const scenario = {
-    playerSetup: createSeedSide(FRAME_IDS.SCOUT),
-    enemySetup: createSeedSide(FRAME_IDS.SCOUT),
-  };
+  const scenario = createDefaultScenario();
 
   const ui = {
     selectedSide: 'player',
@@ -302,6 +311,8 @@ export function createInitialAppState() {
     enemyAiPresetId: AI_PRESET_IDS.AGGRESSOR,
     battleActingChipId: null,
     battleTargetChipId: null,
+    lockedScenarioSnapshot: null,
+    persistenceNotice: '',
     battleState: null,
   };
 
@@ -350,6 +361,8 @@ export function placeChipFromPalette(appState, { sideKey, chipTypeId, col, row }
       enemyLocked: sideKey === 'enemy' ? false : appState.ui.enemyLocked,
       battleActingChipId: null,
       battleTargetChipId: null,
+      lockedScenarioSnapshot: null,
+      persistenceNotice: '',
       battleState: null,
     },
   });
@@ -386,6 +399,7 @@ export function unlockSetupSide(appState, sideKey) {
       enemyLocked: sideKey === 'enemy' ? false : appState.ui.enemyLocked,
       battleActingChipId: null,
       battleTargetChipId: null,
+      persistenceNotice: '',
       battleState: null,
     },
   });
@@ -405,6 +419,13 @@ export function setEnemyAiPreset(appState, aiPresetId) {
 
 export function launchBattle(appState) {
   if (!appState.setup.canLaunch) return appState;
+  const scenarioShell = createScenarioShell({
+    name: 'Battle Test Scenario',
+    playerSetup: appState.scenario.playerSetup,
+    enemySetup: appState.scenario.enemySetup,
+    aiPresetId: appState.ui.enemyAiPresetId,
+  });
+  const lockedScenarioSnapshot = lockScenarioSnapshot(scenarioShell);
 
   return deriveState({
     route: APP_ROUTES.BATTLE,
@@ -415,7 +436,9 @@ export function launchBattle(appState) {
       setupPhase: 'ready',
       battleActingChipId: null,
       battleTargetChipId: null,
-      battleState: initializeBattleState(appState.scenario, appState.content),
+      lockedScenarioSnapshot,
+      persistenceNotice: '',
+      battleState: startBattleFromLockedSnapshot(lockedScenarioSnapshot, appState.content),
     },
   });
 }
@@ -443,6 +466,7 @@ export function stepBattlePhase(appState, steps = 1) {
       ...appState.ui,
       battleActingChipId: null,
       battleTargetChipId: null,
+      persistenceNotice: '',
       battleState: nextBattle,
     },
   });
@@ -457,6 +481,7 @@ export function resetBattlePhase(appState) {
       ...appState.ui,
       battleActingChipId: null,
       battleTargetChipId: null,
+      persistenceNotice: '',
       battleState: null,
     },
   });
@@ -484,6 +509,7 @@ export function selectBattleActor(appState, chipInstanceId) {
       ...appState.ui,
       battleActingChipId: chipInstanceId,
       battleTargetChipId: null,
+      persistenceNotice: '',
     },
   });
 }
@@ -496,6 +522,7 @@ export function selectBattleTarget(appState, chipInstanceId) {
     ui: {
       ...appState.ui,
       battleTargetChipId: chipInstanceId,
+      persistenceNotice: '',
     },
   });
 }
@@ -509,6 +536,7 @@ export function clearBattleSelection(appState) {
       ...appState.ui,
       battleActingChipId: null,
       battleTargetChipId: null,
+      persistenceNotice: '',
     },
   });
 }
@@ -531,7 +559,128 @@ export function confirmBattleAction(appState) {
       ...appState.ui,
       battleActingChipId: null,
       battleTargetChipId: null,
+      persistenceNotice: '',
       battleState: advanced,
+    },
+  });
+}
+
+export function rematchLockedScenario(appState) {
+  if (!appState.ui.lockedScenarioSnapshot) return appState;
+
+  return deriveState({
+    route: APP_ROUTES.BATTLE,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      persistenceNotice: '',
+      battleState: rematchFromLockedSnapshot(appState.ui.lockedScenarioSnapshot, appState.content),
+    },
+  });
+}
+
+export function editLockedScenario(appState) {
+  if (!appState.ui.lockedScenarioSnapshot) return appState;
+  const scenario = editScenarioFromLockedSnapshot(appState.ui.lockedScenarioSnapshot);
+
+  return deriveState({
+    route: APP_ROUTES.BUILD,
+    content: appState.content,
+    scenario: {
+      playerSetup: scenario.playerSetup,
+      enemySetup: scenario.enemySetup,
+    },
+    ui: {
+      ...appState.ui,
+      setupPhase: 'player',
+      selectedSide: 'player',
+      playerLocked: false,
+      enemyLocked: false,
+      enemyAiPresetId: scenario.aiPresetId ?? appState.ui.enemyAiPresetId,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      persistenceNotice: 'Loaded locked scenario into setup',
+      battleState: null,
+    },
+  });
+}
+
+export function newScenario(appState) {
+  return deriveState({
+    route: APP_ROUTES.BUILD,
+    content: appState.content,
+    scenario: createDefaultScenario(),
+    ui: {
+      ...appState.ui,
+      setupPhase: 'player',
+      selectedSide: 'player',
+      playerLocked: false,
+      enemyLocked: false,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      lockedScenarioSnapshot: null,
+      persistenceNotice: 'Started a new scenario',
+      battleState: null,
+    },
+  });
+}
+
+export function saveScenario(appState) {
+  const scenario = createScenarioShell({
+    name: 'Battle Test Scenario',
+    playerSetup: appState.scenario.playerSetup,
+    enemySetup: appState.scenario.enemySetup,
+    aiPresetId: appState.ui.enemyAiPresetId,
+  });
+  const ok = saveScenarioSnapshot(scenario);
+
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      persistenceNotice: ok ? `Saved scenario ${scenario.scenarioId}` : 'Save failed (storage unavailable)',
+    },
+  });
+}
+
+export function loadScenario(appState) {
+  const loaded = loadScenarioSnapshot();
+  if (!loaded?.playerSetup || !loaded?.enemySetup) {
+    return deriveState({
+      route: appState.route,
+      content: appState.content,
+      scenario: appState.scenario,
+      ui: {
+        ...appState.ui,
+        persistenceNotice: 'No saved scenario found',
+      },
+    });
+  }
+
+  return deriveState({
+    route: APP_ROUTES.BUILD,
+    content: appState.content,
+    scenario: {
+      playerSetup: loaded.playerSetup,
+      enemySetup: loaded.enemySetup,
+    },
+    ui: {
+      ...appState.ui,
+      selectedSide: 'player',
+      setupPhase: 'player',
+      playerLocked: false,
+      enemyLocked: false,
+      enemyAiPresetId: loaded.aiPresetId ?? appState.ui.enemyAiPresetId,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      lockedScenarioSnapshot: null,
+      persistenceNotice: `Loaded scenario ${loaded.scenarioId ?? 'unknown'}`,
+      battleState: null,
     },
   });
 }

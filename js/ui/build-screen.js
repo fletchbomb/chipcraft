@@ -146,6 +146,13 @@ export function renderBuildScreen(appState, controls) {
       </button>
     </div>
 
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="save-scenario">Save Scenario</button>
+      <button type="button" class="route-button" data-action="load-scenario">Load Scenario</button>
+      <button type="button" class="route-button" data-action="new-scenario">New Scenario</button>
+    </div>
+    <p>Scenario status: <strong>${appState.loop.persistenceNotice || 'none'}</strong></p>
+
     <label class="field-label">
       Enemy AI Preset
       <select class="route-button ai-select" data-action="ai-preset">
@@ -173,6 +180,9 @@ export function renderBuildScreen(appState, controls) {
   });
 
   panel.querySelector('[data-action="launch"]')?.addEventListener('click', controls.launch);
+  panel.querySelector('[data-action="save-scenario"]')?.addEventListener('click', controls.saveCurrentScenario);
+  panel.querySelector('[data-action="load-scenario"]')?.addEventListener('click', controls.loadSavedScenario);
+  panel.querySelector('[data-action="new-scenario"]')?.addEventListener('click', controls.startNewScenario);
   panel.querySelector('[data-action="ai-preset"]')?.addEventListener('change', (event) => {
     controls.chooseAiPreset(event.target.value);
   });
