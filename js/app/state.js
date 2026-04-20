@@ -16,6 +16,15 @@ import {
   getUsableActiveChips,
 } from '../engine/actions.js';
 import { applyEnemyAction } from '../engine/ai.js';
+import {
+  createScenarioShell,
+  deserializeScenario,
+  editScenarioFromLockedSnapshot,
+  lockScenarioSnapshot,
+  rematchFromLockedSnapshot,
+  serializeScenario,
+  startBattleFromLockedSnapshot,
+} from '../engine/battle-test.js';
 import { AI_PRESET_IDS, CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
 
 function createSeedSide(frameId) {
@@ -131,6 +140,33 @@ function createAiPreview(battleState, content) {
   };
 }
 
+function createBattleTestLoopPreview(playerSetup, enemySetup, content) {
+  const scenario = createScenarioShell({
+    name: 'Demo Scenario',
+    playerSetup,
+    enemySetup,
+    aiPresetId: AI_PRESET_IDS.AGGRESSOR,
+  });
+
+  const locked = lockScenarioSnapshot(scenario);
+  const firstBattle = startBattleFromLockedSnapshot(locked, content);
+  const rematchBattle = rematchFromLockedSnapshot(locked, content);
+  const editedScenario = editScenarioFromLockedSnapshot(locked);
+
+  const serialized = serializeScenario(scenario);
+  const reloaded = deserializeScenario(serialized);
+
+  return {
+    scenario,
+    locked,
+    firstBattle,
+    rematchBattle,
+    editedScenario,
+    reloaded,
+    serializationSize: serialized.length,
+  };
+}
+
 function createCombatPreview(snapshot, content) {
   const initial = initializeBattleState(snapshot, content);
   const phase1 = advanceCombatPhase(initial);
@@ -157,7 +193,7 @@ export function createInitialAppState() {
   const snapshot = { playerSetup, enemySetup };
 
   return {
-    appVersion: '0.8.0-ai-foundation',
+    appVersion: '0.9.0-battle-test-loop-foundation',
     route: 'battle-test-setup',
     mode: 'battle-test',
     content,
@@ -177,5 +213,6 @@ export function createInitialAppState() {
       enemy: createPowerPreview(enemySetup, content),
     },
     combat: createCombatPreview(snapshot, content),
+    battleTest: createBattleTestLoopPreview(playerSetup, enemySetup, content),
   };
 }

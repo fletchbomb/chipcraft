@@ -14,7 +14,7 @@ export function renderBuildScreen(appState) {
   const panel = document.createElement('section');
   panel.className = 'panel';
   panel.innerHTML = `
-    <h1>Chipcraft Battle Test — AI Foundations</h1>
+    <h1>Chipcraft Battle Test — Loop Foundations</h1>
     <p>Route: <strong>${vm.route}</strong></p>
     <p>Mode: <strong>${vm.mode}</strong></p>
     <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
@@ -64,13 +64,21 @@ export function renderBuildScreen(appState) {
     <p>AI score: <strong>${vm.aiScore}</strong></p>
     <p>AI log tail: <strong>${vm.aiLogTail || 'none'}</strong></p>
 
+    <h2>Battle-Test Loop Preview</h2>
+    <p>Scenario ID: <strong>${vm.scenarioId}</strong></p>
+    <p>Locked version: <strong>${vm.lockedVersion}</strong></p>
+    <p>Rematch round reset: <strong>${vm.rematchRound}</strong></p>
+    <p>Edited scenario name: <strong>${vm.editedScenarioName}</strong></p>
+    <p>Reloaded scenario name: <strong>${vm.reloadedScenarioName}</strong></p>
+    <p>Serialized size: <strong>${vm.serializationSize}</strong></p>
+
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
 
     <p><strong>Enemy launch errors</strong></p>
     <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
 
-    <span class="pill">AI action selection active</span>
+    <span class="pill">Battle-test lock/rematch/edit/save loop active</span>
   `;
   return panel;
 }

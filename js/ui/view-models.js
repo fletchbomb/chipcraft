@@ -14,6 +14,7 @@ function formatChipPower(chipPowerRows) {
 export function buildScreenViewModel(state) {
   const actionPreview = state.combat.actionPreview;
   const aiPreview = state.combat.aiPreview;
+  const loopPreview = state.battleTest;
 
   return {
     route: state.route,
@@ -60,5 +61,11 @@ export function buildScreenViewModel(state) {
       : 'none',
     aiScore: aiPreview.choice?.score ?? 0,
     aiLogTail: aiPreview.logTail.join(' | '),
+    scenarioId: loopPreview.scenario.scenarioId,
+    lockedVersion: loopPreview.locked.lockedAtVersion,
+    rematchRound: loopPreview.rematchBattle.round,
+    editedScenarioName: loopPreview.editedScenario.name,
+    reloadedScenarioName: loopPreview.reloaded.name,
+    serializationSize: loopPreview.serializationSize,
   };
 }
