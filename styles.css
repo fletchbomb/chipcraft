@@ -55,7 +55,10 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+<<<<<<< codex/review-repo-files-for-required-changes-0mu4c0
   margin-bottom: 8px;
+=======
+>>>>>>> main
 }
 
 .route-button {
@@ -76,6 +79,7 @@ body {
   color: var(--accent);
 }
 
+<<<<<<< codex/review-repo-files-for-required-changes-0mu4c0
 .board-grid {
   display: grid;
   gap: 4px;
@@ -102,6 +106,8 @@ body {
   border-color: var(--accent);
 }
 
+=======
+>>>>>>> main
 .panel h1,
 .panel h2,
 .panel h3 {
