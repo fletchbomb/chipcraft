@@ -67,5 +67,10 @@ export function buildScreenViewModel(state) {
     editedScenarioName: loopPreview.editedScenario.name,
     reloadedScenarioName: loopPreview.reloaded.name,
     serializationSize: loopPreview.serializationSize,
+    appSaveOk: state.persistence.appSaveOk,
+    scenarioSaveOk: state.persistence.scenarioSaveOk,
+    loadedScenarioName: state.persistence.loadedScenarioName,
+    clearOk: state.persistence.clearOk,
+    isCleared: state.persistence.isCleared,
   };
 }

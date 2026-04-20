@@ -14,7 +14,7 @@ export function renderBuildScreen(appState) {
   const panel = document.createElement('section');
   panel.className = 'panel';
   panel.innerHTML = `
-    <h1>Chipcraft Battle Test — Loop Foundations</h1>
+    <h1>Chipcraft Battle Test — Persistence Foundations</h1>
     <p>Route: <strong>${vm.route}</strong></p>
     <p>Mode: <strong>${vm.mode}</strong></p>
     <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
@@ -72,13 +72,20 @@ export function renderBuildScreen(appState) {
     <p>Reloaded scenario name: <strong>${vm.reloadedScenarioName}</strong></p>
     <p>Serialized size: <strong>${vm.serializationSize}</strong></p>
 
+    <h2>Persistence Preview</h2>
+    <p>App save ok: <strong>${vm.appSaveOk}</strong></p>
+    <p>Scenario save ok: <strong>${vm.scenarioSaveOk}</strong></p>
+    <p>Loaded scenario name: <strong>${vm.loadedScenarioName ?? 'none'}</strong></p>
+    <p>Clear ok: <strong>${vm.clearOk}</strong></p>
+    <p>Storage cleared: <strong>${vm.isCleared}</strong></p>
+
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
 
     <p><strong>Enemy launch errors</strong></p>
     <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
 
-    <span class="pill">Battle-test lock/rematch/edit/save loop active</span>
+    <span class="pill">Persistence save/load/clear flow active</span>
   `;
   return panel;
 }

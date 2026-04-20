@@ -25,7 +25,29 @@ import {
   serializeScenario,
   startBattleFromLockedSnapshot,
 } from '../engine/battle-test.js';
+import {
+  clearScenarioSnapshot,
+  loadScenarioSnapshot,
+  saveAppState,
+  saveScenarioSnapshot,
+} from './persistence.js';
 import { AI_PRESET_IDS, CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
+
+function createMemoryStorage() {
+  const bag = new Map();
+
+  return {
+    setItem(key, value) {
+      bag.set(key, value);
+    },
+    getItem(key) {
+      return bag.get(key) ?? null;
+    },
+    removeItem(key) {
+      bag.delete(key);
+    },
+  };
+}
 
 function createSeedSide(frameId) {
   let sideSetup = createSideSetup(frameId);
@@ -167,6 +189,24 @@ function createBattleTestLoopPreview(playerSetup, enemySetup, content) {
   };
 }
 
+function createPersistencePreview(loopPreview) {
+  const memoryStorage = createMemoryStorage();
+
+  const appSaveOk = saveAppState({ scenarioId: loopPreview.scenario.scenarioId }, memoryStorage);
+  const scenarioSaveOk = saveScenarioSnapshot(loopPreview.scenario, memoryStorage);
+  const loadedScenario = loadScenarioSnapshot(memoryStorage);
+  const clearOk = clearScenarioSnapshot(memoryStorage);
+  const afterClear = loadScenarioSnapshot(memoryStorage);
+
+  return {
+    appSaveOk,
+    scenarioSaveOk,
+    loadedScenarioName: loadedScenario?.name ?? null,
+    clearOk,
+    isCleared: afterClear === null,
+  };
+}
+
 function createCombatPreview(snapshot, content) {
   const initial = initializeBattleState(snapshot, content);
   const phase1 = advanceCombatPhase(initial);
@@ -191,9 +231,10 @@ export function createInitialAppState() {
   const playerSetup = createSeedSide(FRAME_IDS.SCOUT);
   const enemySetup = createSeedSide(FRAME_IDS.SCOUT);
   const snapshot = { playerSetup, enemySetup };
+  const battleTest = createBattleTestLoopPreview(playerSetup, enemySetup, content);
 
   return {
-    appVersion: '0.9.0-battle-test-loop-foundation',
+    appVersion: '1.0.0-persistence-loop-foundation',
     route: 'battle-test-setup',
     mode: 'battle-test',
     content,
@@ -213,6 +254,7 @@ export function createInitialAppState() {
       enemy: createPowerPreview(enemySetup, content),
     },
     combat: createCombatPreview(snapshot, content),
-    battleTest: createBattleTestLoopPreview(playerSetup, enemySetup, content),
+    battleTest,
+    persistence: createPersistencePreview(battleTest),
   };
 }
