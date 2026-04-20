@@ -18,6 +18,7 @@ function createBoardSection(appState, controls) {
 
   const selectedSide = appState.ui.selectedSide;
   const selectedChipTypeId = appState.ui.selectedChipTypeId;
+  const isSelectedLocked = selectedSide === 'player' ? appState.setup.playerLocked : appState.setup.enemyLocked;
 
   const sideSetup = appState.scenario[`${selectedSide}Setup`];
   const frame = appState.content.frames.find((f) => f.id === sideSetup.frameId);
@@ -32,6 +33,7 @@ function createBoardSection(appState, controls) {
     <h2>Interactive Setup Board</h2>
     <p>Selected side: <strong>${selectedSide}</strong></p>
     <p>Selected chip type: <strong>${selectedChipTypeId}</strong></p>
+    <p>Selected side locked: <strong>${isSelectedLocked}</strong></p>
   `;
 
   const sideButtons = document.createElement('div');
@@ -79,7 +81,7 @@ function createBoardSection(appState, controls) {
         cell.textContent = shortLabel;
       }
 
-      if (isLegal) {
+      if (isLegal && !isSelectedLocked) {
         cell.addEventListener('click', () => {
           controls.placeChip({
             sideKey: selectedSide,
@@ -100,6 +102,19 @@ function createBoardSection(appState, controls) {
 
 export function renderBuildScreen(appState, controls) {
   const vm = buildScreenViewModel(appState);
+  const playerLockLabel = appState.setup.playerLocked ? 'Unlock Player Setup' : 'Lock Player Setup';
+  const enemyLockLabel = appState.setup.enemyLocked ? 'Unlock Enemy Setup' : 'Lock Enemy Setup';
+  const setupPhaseLabel = appState.setup.phase;
+
+  const aiOptions = appState.content.aiPresets
+    .map(
+      (preset) => `
+      <option value="${preset.id}" ${preset.id === appState.ui.enemyAiPresetId ? 'selected' : ''}>
+        ${preset.id}
+      </option>
+    `,
+    )
+    .join('');
 
   const panel = document.createElement('section');
   panel.className = 'panel';
@@ -115,6 +130,7 @@ export function renderBuildScreen(appState, controls) {
     <p>Enemy built chips: <strong>${vm.enemyBuiltCount}</strong>, placed: <strong>${vm.enemyPlacedCount}</strong></p>
     <p>Player launch valid: <strong>${vm.playerLaunchValid}</strong></p>
     <p>Enemy launch valid: <strong>${vm.enemyLaunchValid}</strong></p>
+    <p>Setup phase: <strong>${setupPhaseLabel}</strong></p>
 
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
@@ -122,8 +138,44 @@ export function renderBuildScreen(appState, controls) {
     <p><strong>Enemy launch errors</strong></p>
     <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
 
-    <span class="pill">Board clicks place selected chip type</span>
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="lock-player">${playerLockLabel}</button>
+      <button type="button" class="route-button" data-action="lock-enemy">${enemyLockLabel}</button>
+      <button type="button" class="route-button" data-action="launch" ${appState.setup.canLaunch ? '' : 'disabled'}>
+        Launch Battle
+      </button>
+    </div>
+
+    <label class="field-label">
+      Enemy AI Preset
+      <select class="route-button ai-select" data-action="ai-preset">
+        ${aiOptions}
+      </select>
+    </label>
+
+    <span class="pill">Board clicks place selected chip type (disabled while side is locked)</span>
   `;
+
+  panel.querySelector('[data-action="lock-player"]')?.addEventListener('click', () => {
+    if (appState.setup.playerLocked) {
+      controls.unlockSide('player');
+      return;
+    }
+    controls.lockSide('player');
+  });
+
+  panel.querySelector('[data-action="lock-enemy"]')?.addEventListener('click', () => {
+    if (appState.setup.enemyLocked) {
+      controls.unlockSide('enemy');
+      return;
+    }
+    controls.lockSide('enemy');
+  });
+
+  panel.querySelector('[data-action="launch"]')?.addEventListener('click', controls.launch);
+  panel.querySelector('[data-action="ai-preset"]')?.addEventListener('change', (event) => {
+    controls.chooseAiPreset(event.target.value);
+  });
 
   panel.appendChild(createBoardSection(appState, controls));
   return panel;

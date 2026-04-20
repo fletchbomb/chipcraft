@@ -163,12 +163,12 @@ function createAiPreview(battleState, content) {
   };
 }
 
-function createBattleTestLoopPreview(playerSetup, enemySetup, content) {
+function createBattleTestLoopPreview(playerSetup, enemySetup, aiPresetId, content) {
   const scenario = createScenarioShell({
     name: 'Demo Scenario',
     playerSetup,
     enemySetup,
-    aiPresetId: AI_PRESET_IDS.AGGRESSOR,
+    aiPresetId,
   });
 
   const locked = lockScenarioSnapshot(scenario);
@@ -208,17 +208,33 @@ function createPersistencePreview(loopPreview) {
   };
 }
 
-function createCombatPreview(currentBattleState, content) {
-  const actionPreview = createActionPreview(currentBattleState, content);
+function createCombatPreview(currentBattleState, content, ui) {
+  const usable = getUsableActiveChips(currentBattleState, 'player', content);
+  const selectedActorId = ui.battleActingChipId;
+  const selectedActorIsUsable = usable.some((chip) => chip.chipInstanceId === selectedActorId);
+  const legalTargets =
+    selectedActorIsUsable && selectedActorId
+      ? getLegalTargetsForChip(currentBattleState, 'player', selectedActorId, content)
+      : [];
+  const selectedTargetId = ui.battleTargetChipId;
+  const projected =
+    selectedActorIsUsable && selectedTargetId
+      ? buildProjectedResolution(currentBattleState, 'player', selectedActorId, selectedTargetId, content)
+      : null;
   const aiChoice =
     currentBattleState.turnOwner === 'enemy' && currentBattleState.phase === 'activation'
-      ? chooseEnemyAction(currentBattleState, content, AI_PRESET_IDS.AGGRESSOR)
+      ? chooseEnemyAction(currentBattleState, content, ui.enemyAiPresetId)
       : null;
 
   return {
     current: currentBattleState,
     logTail: currentBattleState.actionLog.slice(-5),
-    actionPreview,
+    actionPreview: {
+      usable,
+      legalTargets,
+      projected,
+      postActivation: currentBattleState,
+    },
     aiPreview: {
       enemyActivationState: currentBattleState,
       choice: aiChoice,
@@ -232,7 +248,10 @@ function deriveState({ route, content, scenario, ui }) {
   const { playerSetup, enemySetup } = scenario;
   const snapshot = { playerSetup, enemySetup };
   const currentBattleState = ui.battleState ?? initializeBattleState(snapshot, content);
-  const battleTest = createBattleTestLoopPreview(playerSetup, enemySetup, content);
+  const battleTest = createBattleTestLoopPreview(playerSetup, enemySetup, ui.enemyAiPresetId, content);
+  const playerLaunch = validateLaunchLayout(playerSetup, content);
+  const enemyLaunch = validateLaunchLayout(enemySetup, content);
+  const canLaunch = Boolean(ui.playerLocked && ui.enemyLocked && playerLaunch.isValid && enemyLaunch.isValid);
 
   return {
     appVersion: '1.2.0-interactive-board-foundation',
@@ -243,9 +262,15 @@ function deriveState({ route, content, scenario, ui }) {
     ui,
     validation: {
       playerLayout: validateShipLayout(playerSetup, content),
-      playerLaunch: validateLaunchLayout(playerSetup, content),
+      playerLaunch,
       enemyLayout: validateShipLayout(enemySetup, content),
-      enemyLaunch: validateLaunchLayout(enemySetup, content),
+      enemyLaunch,
+    },
+    setup: {
+      phase: ui.setupPhase,
+      playerLocked: ui.playerLocked,
+      enemyLocked: ui.enemyLocked,
+      canLaunch,
     },
     geometry: {
       player: createGeometryPreview(playerSetup, content),
@@ -255,7 +280,7 @@ function deriveState({ route, content, scenario, ui }) {
       player: createPowerPreview(playerSetup, content),
       enemy: createPowerPreview(enemySetup, content),
     },
-    combat: createCombatPreview(currentBattleState, content),
+    combat: createCombatPreview(currentBattleState, content, ui),
     battleTest,
     persistence: createPersistencePreview(battleTest),
   };
@@ -271,6 +296,12 @@ export function createInitialAppState() {
   const ui = {
     selectedSide: 'player',
     selectedChipTypeId: CHIP_TYPE_IDS.CANNON_I,
+    setupPhase: 'player',
+    playerLocked: false,
+    enemyLocked: false,
+    enemyAiPresetId: AI_PRESET_IDS.AGGRESSOR,
+    battleActingChipId: null,
+    battleTargetChipId: null,
     battleState: null,
   };
 
@@ -283,6 +314,7 @@ export function createInitialAppState() {
 }
 
 export function setUiSelection(appState, patch) {
+  const selectedSide = patch.selectedSide ?? appState.ui.selectedSide;
   return deriveState({
     route: appState.route,
     content: appState.content,
@@ -290,6 +322,7 @@ export function setUiSelection(appState, patch) {
     ui: {
       ...appState.ui,
       ...patch,
+      selectedSide,
     },
   });
 }
@@ -311,7 +344,78 @@ export function placeChipFromPalette(appState, { sideKey, chipTypeId, col, row }
     },
     ui: {
       ...appState.ui,
+      selectedSide: sideKey,
+      setupPhase: sideKey === 'player' ? 'player' : appState.ui.setupPhase,
+      playerLocked: sideKey === 'player' ? false : appState.ui.playerLocked,
+      enemyLocked: sideKey === 'enemy' ? false : appState.ui.enemyLocked,
+      battleActingChipId: null,
+      battleTargetChipId: null,
       battleState: null,
+    },
+  });
+}
+
+export function lockSetupSide(appState, sideKey) {
+  if (sideKey === 'player' && !appState.validation.playerLaunch.isValid) return appState;
+  if (sideKey === 'enemy' && !appState.validation.enemyLaunch.isValid) return appState;
+
+  return deriveState({
+    route: APP_ROUTES.BUILD,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      setupPhase: sideKey === 'player' ? 'enemy' : 'ready',
+      selectedSide: sideKey === 'player' ? 'enemy' : appState.ui.selectedSide,
+      playerLocked: sideKey === 'player' ? true : appState.ui.playerLocked,
+      enemyLocked: sideKey === 'enemy' ? true : appState.ui.enemyLocked,
+    },
+  });
+}
+
+export function unlockSetupSide(appState, sideKey) {
+  return deriveState({
+    route: APP_ROUTES.BUILD,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      setupPhase: sideKey,
+      selectedSide: sideKey,
+      playerLocked: sideKey === 'player' ? false : appState.ui.playerLocked,
+      enemyLocked: sideKey === 'enemy' ? false : appState.ui.enemyLocked,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      battleState: null,
+    },
+  });
+}
+
+export function setEnemyAiPreset(appState, aiPresetId) {
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      enemyAiPresetId: aiPresetId,
+    },
+  });
+}
+
+export function launchBattle(appState) {
+  if (!appState.setup.canLaunch) return appState;
+
+  return deriveState({
+    route: APP_ROUTES.BATTLE,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      setupPhase: 'ready',
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      battleState: initializeBattleState(appState.scenario, appState.content),
     },
   });
 }
@@ -324,7 +428,7 @@ export function stepBattlePhase(appState, steps = 1) {
     if (nextBattle.winner) break;
 
     if (nextBattle.turnOwner === 'enemy' && nextBattle.phase === 'activation') {
-      const enemyApplied = applyEnemyAction(nextBattle, appState.content, AI_PRESET_IDS.AGGRESSOR);
+      const enemyApplied = applyEnemyAction(nextBattle, appState.content, appState.ui.enemyAiPresetId);
       nextBattle = enemyApplied.nextState;
     }
 
@@ -337,6 +441,8 @@ export function stepBattlePhase(appState, steps = 1) {
     scenario: appState.scenario,
     ui: {
       ...appState.ui,
+      battleActingChipId: null,
+      battleTargetChipId: null,
       battleState: nextBattle,
     },
   });
@@ -349,7 +455,83 @@ export function resetBattlePhase(appState) {
     scenario: appState.scenario,
     ui: {
       ...appState.ui,
+      battleActingChipId: null,
+      battleTargetChipId: null,
       battleState: null,
+    },
+  });
+}
+
+export function advanceToPlayerActivation(appState) {
+  let next = appState;
+
+  for (let i = 0; i < 20; i += 1) {
+    const battle = next.combat.current;
+    if (battle.winner) break;
+    if (battle.turnOwner === 'player' && battle.phase === 'activation') break;
+    next = stepBattlePhase(next, 1);
+  }
+
+  return next;
+}
+
+export function selectBattleActor(appState, chipInstanceId) {
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      battleActingChipId: chipInstanceId,
+      battleTargetChipId: null,
+    },
+  });
+}
+
+export function selectBattleTarget(appState, chipInstanceId) {
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      battleTargetChipId: chipInstanceId,
+    },
+  });
+}
+
+export function clearBattleSelection(appState) {
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+    },
+  });
+}
+
+export function confirmBattleAction(appState) {
+  const battle = appState.ui.battleState ?? initializeBattleState(appState.scenario, appState.content);
+  const actorId = appState.ui.battleActingChipId;
+  const targetId = appState.ui.battleTargetChipId;
+  if (!actorId || !targetId) return appState;
+  if (battle.turnOwner !== 'player' || battle.phase !== 'activation') return appState;
+
+  const resolved = applyActivation(battle, 'player', actorId, targetId, appState.content);
+  const advanced = advanceCombatPhase(resolved);
+
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      battleActingChipId: null,
+      battleTargetChipId: null,
+      battleState: advanced,
     },
   });
 }

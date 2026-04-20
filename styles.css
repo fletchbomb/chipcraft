@@ -56,7 +56,6 @@ body {
   gap: 8px;
   flex-wrap: wrap;
   margin-bottom: 8px;
-  margin-bottom: 8px;
 }
 
 .route-button {
@@ -70,6 +69,11 @@ body {
 
 .route-button:hover {
   border-color: var(--accent);
+}
+
+.route-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
 
 .route-button.is-active {
@@ -198,4 +202,22 @@ body {
   margin-top: 4px;
   font-size: 0.8rem;
   color: var(--muted);
+}
+
+.field-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+  color: var(--muted);
+}
+
+.ai-select {
+  appearance: auto;
+}
+
+.hint-text {
+  color: var(--muted);
+  font-size: 0.9rem;
+  align-self: center;
 }

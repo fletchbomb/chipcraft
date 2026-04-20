@@ -1,10 +1,19 @@
 import { APP_ROUTES, isValidRoute } from './app/routes.js';
 import {
+  advanceToPlayerActivation,
+  clearBattleSelection,
+  confirmBattleAction,
   createInitialAppState,
+  launchBattle,
+  lockSetupSide,
   placeChipFromPalette,
   resetBattlePhase,
+  selectBattleActor,
+  selectBattleTarget,
+  setEnemyAiPreset,
   setUiSelection,
   stepBattlePhase,
+  unlockSetupSide,
 } from './app/state.js';
 import { renderApp } from './ui/render.js';
 
@@ -41,8 +50,28 @@ function placeChip(payload) {
   render();
 }
 
+function lockSide(sideKey) {
+  appState = lockSetupSide(appState, sideKey);
+  render();
+}
+
+function unlockSide(sideKey) {
+  appState = unlockSetupSide(appState, sideKey);
+  render();
+}
+
+function chooseAiPreset(aiPresetId) {
+  appState = setEnemyAiPreset(appState, aiPresetId);
+  render();
+}
+
+function launch() {
+  appState = launchBattle(appState);
+  render();
+}
+
 function stepBattle() {
-  appState = stepBattlePhase(appState, 1);
+  appState = advanceToPlayerActivation(appState);
   render();
 }
 
@@ -56,15 +85,44 @@ function resetBattle() {
   render();
 }
 
+function chooseBattleActor(chipInstanceId) {
+  appState = selectBattleActor(appState, chipInstanceId);
+  render();
+}
+
+function chooseBattleTarget(chipInstanceId) {
+  appState = selectBattleTarget(appState, chipInstanceId);
+  render();
+}
+
+function clearActionSelection() {
+  appState = clearBattleSelection(appState);
+  render();
+}
+
+function confirmAction() {
+  appState = confirmBattleAction(appState);
+  appState = advanceToPlayerActivation(appState);
+  render();
+}
+
 function render() {
   renderApp(root, appState, {
     setRoute,
     selectSide,
     selectChipType,
     placeChip,
+    lockSide,
+    unlockSide,
+    chooseAiPreset,
+    launch,
     stepBattle,
     skipToNextTurn,
     resetBattle,
+    chooseBattleActor,
+    chooseBattleTarget,
+    clearActionSelection,
+    confirmAction,
     routes: APP_ROUTES,
   });
 }

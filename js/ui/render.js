@@ -48,6 +48,10 @@ function renderNav(appState, controls) {
     button.type = 'button';
     button.className = `route-button${appState.route === route ? ' is-active' : ''}`;
     button.textContent = label;
+    if (route === controls.routes.BATTLE && !appState.setup.canLaunch && appState.route !== controls.routes.BATTLE) {
+      button.disabled = true;
+      button.title = 'Lock both valid setups to launch battle';
+    }
     button.addEventListener('click', () => controls.setRoute(route));
     buttonRow.appendChild(button);
   }
