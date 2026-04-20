@@ -14,7 +14,7 @@ export function renderBuildScreen(appState) {
   const panel = document.createElement('section');
   panel.className = 'panel';
   panel.innerHTML = `
-    <h1>Chipcraft Battle Test — Power Foundations</h1>
+    <h1>Chipcraft Battle Test — Combat Foundations</h1>
     <p>Route: <strong>${vm.route}</strong></p>
     <p>Mode: <strong>${vm.mode}</strong></p>
     <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
@@ -41,13 +41,22 @@ export function renderBuildScreen(appState) {
     <p>Player power summary: <strong>${vm.playerPowerSummary || 'none'}</strong></p>
     <p>Enemy power summary: <strong>${vm.enemyPowerSummary || 'none'}</strong></p>
 
+    <h2>Combat Preview</h2>
+    <p>Round: <strong>${vm.combatRound}</strong></p>
+    <p>Turn owner: <strong>${vm.combatTurnOwner}</strong></p>
+    <p>Phase: <strong>${vm.combatPhase}</strong></p>
+    <p>Player energy: <strong>${vm.playerEnergy}</strong></p>
+    <p>Enemy energy: <strong>${vm.enemyEnergy}</strong></p>
+    <p>Winner: <strong>${vm.combatWinner ?? 'none'}</strong></p>
+    <p>Log tail: <strong>${vm.combatLogTail || 'none'}</strong></p>
+
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
 
     <p><strong>Enemy launch errors</strong></p>
     <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
 
-    <span class="pill">Power evaluation active</span>
+    <span class="pill">Combat state machine active</span>
   `;
   return panel;
 }

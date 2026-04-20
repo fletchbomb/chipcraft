@@ -8,6 +8,7 @@ import {
 } from '../engine/construction.js';
 import { getAffectedSpacesFromShape, getFrontierSpaces } from '../engine/geometry.js';
 import { getPowerColorsByChip, getPoweredStateTagsForChip } from '../engine/power.js';
+import { advanceCombatPhase, initializeBattleState } from '../engine/combat.js';
 import { CHIP_TYPE_IDS, FRAME_IDS } from '../content/ids.js';
 
 function createSeedSide(frameId) {
@@ -58,21 +59,30 @@ function createPowerPreview(sideSetup, content) {
   };
 }
 
+function createCombatPreview(snapshot, content) {
+  const initial = initializeBattleState(snapshot, content);
+  const phase1 = advanceCombatPhase(initial);
+  const phase2 = advanceCombatPhase(phase1);
+
+  return {
+    current: phase2,
+    logTail: phase2.actionLog.slice(-5),
+  };
+}
+
 export function createInitialAppState() {
   const content = loadContentCatalog();
 
   const playerSetup = createSeedSide(FRAME_IDS.SCOUT);
   const enemySetup = createSeedSide(FRAME_IDS.SCOUT);
+  const snapshot = { playerSetup, enemySetup };
 
   return {
-    appVersion: '0.5.0-power-foundation',
+    appVersion: '0.6.0-combat-foundation',
     route: 'battle-test-setup',
     mode: 'battle-test',
     content,
-    scenario: {
-      playerSetup,
-      enemySetup,
-    },
+    scenario: snapshot,
     validation: {
       playerLayout: validateShipLayout(playerSetup, content),
       playerLaunch: validateLaunchLayout(playerSetup, content),
@@ -87,5 +97,6 @@ export function createInitialAppState() {
       player: createPowerPreview(playerSetup, content),
       enemy: createPowerPreview(enemySetup, content),
     },
+    combat: createCombatPreview(snapshot, content),
   };
 }

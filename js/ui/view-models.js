@@ -38,5 +38,12 @@ export function buildScreenViewModel(state) {
     enemyPoweredCount: state.power.enemy.poweredChipCount,
     playerPowerSummary: formatChipPower(state.power.player.chips),
     enemyPowerSummary: formatChipPower(state.power.enemy.chips),
+    combatRound: state.combat.current.round,
+    combatTurnOwner: state.combat.current.turnOwner,
+    combatPhase: state.combat.current.phase,
+    playerEnergy: state.combat.current.player.energy,
+    enemyEnergy: state.combat.current.enemy.energy,
+    combatWinner: state.combat.current.winner,
+    combatLogTail: state.combat.logTail.join(' | '),
   };
 }
