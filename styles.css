@@ -27,22 +27,54 @@ body {
   padding: 24px;
 }
 
+.layout-stack {
+  width: min(980px, 100%);
+  display: grid;
+  gap: 12px;
+}
+
 .panel {
-  width: min(900px, 100%);
+  width: 100%;
   background: color-mix(in srgb, var(--panel) 92%, black 8%);
   border: 1px solid var(--border);
   border-radius: 12px;
-  padding: 20px;
+  padding: 16px 18px;
+}
+
+.panel-sub {
+  border-style: dashed;
+}
+
+.panel h1,
+.panel h2,
+.panel h3 {
+  margin: 0 0 8px;
 }
 
 .panel h1 {
-  margin: 0 0 8px;
-  font-size: 1.4rem;
+  font-size: 1.25rem;
 }
 
-.panel p {
-  margin: 0;
+.panel h2 {
+  font-size: 1.05rem;
+  color: var(--accent);
+}
+
+.panel h3 {
+  font-size: 0.95rem;
   color: var(--muted);
+}
+
+.panel p,
+.panel li {
+  margin: 0 0 4px;
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.panel ul {
+  margin: 6px 0 0;
+  padding-left: 18px;
 }
 
 .pill {
