@@ -55,6 +55,10 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
+<<<<<<< codex/review-repo-files-for-required-changes-0mu4c0
+  margin-bottom: 8px;
+=======
+>>>>>>> main
 }
 
 .route-button {
@@ -75,6 +79,35 @@ body {
   color: var(--accent);
 }
 
+<<<<<<< codex/review-repo-files-for-required-changes-0mu4c0
+.board-grid {
+  display: grid;
+  gap: 4px;
+  margin-top: 8px;
+}
+
+.board-cell {
+  width: 42px;
+  height: 42px;
+  border: 1px solid #293861;
+  border-radius: 6px;
+  background: #0f1730;
+  color: #7f8cb0;
+}
+
+.board-cell.is-legal {
+  background: #16213f;
+  border-color: #39508a;
+  color: #d7e1ff;
+  cursor: pointer;
+}
+
+.board-cell.is-legal:hover {
+  border-color: var(--accent);
+}
+
+=======
+>>>>>>> main
 .panel h1,
 .panel h2,
 .panel h3 {

@@ -58,7 +58,7 @@ function createSeedSide(frameId) {
   sideSetup = buildChipInstance(sideSetup, CHIP_TYPE_IDS.RELAY_I);
 
   const [core, cannon, pylon, relay] = sideSetup.builtChipInstances;
-  sideSetup = placeChipInstance(sideSetup, core.chipInstanceId, 2, 4);
+  sideSetup = placeChipInstance(sideSetup, core.chipInstanceId, 3, 4);
   sideSetup = placeChipInstance(sideSetup, cannon.chipInstanceId, 2, 2);
   sideSetup = placeChipInstance(sideSetup, pylon.chipInstanceId, 1, 3);
   sideSetup = placeChipInstance(sideSetup, relay.chipInstanceId, 2, 3);
@@ -226,20 +226,18 @@ function createCombatPreview(snapshot, content) {
   };
 }
 
-export function createInitialAppState() {
-  const content = loadContentCatalog();
-
-  const playerSetup = createSeedSide(FRAME_IDS.SCOUT);
-  const enemySetup = createSeedSide(FRAME_IDS.SCOUT);
+function deriveState({ route, content, scenario, ui }) {
+  const { playerSetup, enemySetup } = scenario;
   const snapshot = { playerSetup, enemySetup };
   const battleTest = createBattleTestLoopPreview(playerSetup, enemySetup, content);
 
   return {
-    appVersion: '1.1.0-route-surface-foundation',
-    route: APP_ROUTES.BUILD,
+    appVersion: '1.2.0-interactive-board-foundation',
+    route,
     mode: 'battle-test',
     content,
     scenario: snapshot,
+    ui,
     validation: {
       playerLayout: validateShipLayout(playerSetup, content),
       playerLaunch: validateLaunchLayout(playerSetup, content),
@@ -258,4 +256,55 @@ export function createInitialAppState() {
     battleTest,
     persistence: createPersistencePreview(battleTest),
   };
+}
+
+export function createInitialAppState() {
+  const content = loadContentCatalog();
+  const scenario = {
+    playerSetup: createSeedSide(FRAME_IDS.SCOUT),
+    enemySetup: createSeedSide(FRAME_IDS.SCOUT),
+  };
+
+  const ui = {
+    selectedSide: 'player',
+    selectedChipTypeId: CHIP_TYPE_IDS.CANNON_I,
+  };
+
+  return deriveState({
+    route: APP_ROUTES.BUILD,
+    content,
+    scenario,
+    ui,
+  });
+}
+
+export function setUiSelection(appState, patch) {
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      ...patch,
+    },
+  });
+}
+
+export function placeChipFromPalette(appState, { sideKey, chipTypeId, col, row }) {
+  const sideSetup = appState.scenario[`${sideKey}Setup`];
+  if (!sideSetup) return appState;
+
+  let nextSide = buildChipInstance(sideSetup, chipTypeId);
+  const lastBuilt = nextSide.builtChipInstances[nextSide.builtChipInstances.length - 1];
+  nextSide = placeChipInstance(nextSide, lastBuilt.chipInstanceId, col, row);
+
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: {
+      ...appState.scenario,
+      [`${sideKey}Setup`]: nextSide,
+    },
+    ui: appState.ui,
+  });
 }

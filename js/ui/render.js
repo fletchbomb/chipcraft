@@ -67,7 +67,7 @@ export function renderApp(root, appState, controls) {
   shell.appendChild(renderNav(appState, controls));
 
   if (appState.route === controls.routes.BUILD) {
-    shell.appendChild(renderBuildScreen(appState));
+    shell.appendChild(renderBuildScreen(appState, controls));
   }
 
   if (appState.route === controls.routes.BATTLE) {
