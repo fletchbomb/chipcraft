@@ -1,5 +1,11 @@
 import { APP_ROUTES, isValidRoute } from './app/routes.js';
-import { createInitialAppState, placeChipFromPalette, setUiSelection } from './app/state.js';
+import {
+  createInitialAppState,
+  placeChipFromPalette,
+  resetBattlePhase,
+  setUiSelection,
+  stepBattlePhase,
+} from './app/state.js';
 import { renderApp } from './ui/render.js';
 
 const root = document.getElementById('app');
@@ -35,12 +41,30 @@ function placeChip(payload) {
   render();
 }
 
+function stepBattle() {
+  appState = stepBattlePhase(appState, 1);
+  render();
+}
+
+function skipToNextTurn() {
+  appState = stepBattlePhase(appState, 5);
+  render();
+}
+
+function resetBattle() {
+  appState = resetBattlePhase(appState);
+  render();
+}
+
 function render() {
   renderApp(root, appState, {
     setRoute,
     selectSide,
     selectChipType,
     placeChip,
+    stepBattle,
+    skipToNextTurn,
+    resetBattle,
     routes: APP_ROUTES,
   });
 }

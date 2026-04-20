@@ -71,7 +71,7 @@ export function renderApp(root, appState, controls) {
   }
 
   if (appState.route === controls.routes.BATTLE) {
-    shell.appendChild(renderBattleScreen(vm));
+    shell.appendChild(renderBattleScreen(appState, vm, controls));
   }
 
   if (appState.route === controls.routes.LOOP) {

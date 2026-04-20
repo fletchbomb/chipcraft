@@ -55,10 +55,8 @@ body {
   display: flex;
   gap: 8px;
   flex-wrap: wrap;
-<<<<<<< codex/review-repo-files-for-required-changes-0mu4c0
   margin-bottom: 8px;
-=======
->>>>>>> main
+  margin-bottom: 8px;
 }
 
 .route-button {
@@ -79,7 +77,6 @@ body {
   color: var(--accent);
 }
 
-<<<<<<< codex/review-repo-files-for-required-changes-0mu4c0
 .board-grid {
   display: grid;
   gap: 4px;
@@ -106,8 +103,6 @@ body {
   border-color: var(--accent);
 }
 
-=======
->>>>>>> main
 .panel h1,
 .panel h2,
 .panel h3 {
@@ -148,4 +143,59 @@ body {
   border: 1px solid var(--accent);
   color: var(--accent);
   font-size: 0.8rem;
+}
+
+.battle-grid {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.battle-side-panel {
+  background: #101933;
+}
+
+.combatant-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 8px;
+}
+
+.combatant-row {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+}
+
+.combatant-row.is-disabled {
+  opacity: 0.55;
+}
+
+.chip-id {
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.hp-track {
+  margin-top: 6px;
+  width: 100%;
+  height: 8px;
+  background: #1f2b4b;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.hp-fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #7dff9e, #47cf73);
+}
+
+.hp-label {
+  margin-top: 4px;
+  font-size: 0.8rem;
+  color: var(--muted);
 }
