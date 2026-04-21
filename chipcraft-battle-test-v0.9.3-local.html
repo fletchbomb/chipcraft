@@ -1,0 +1,3101 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Chipcraft Battle Test v0.9.3 Local</title>
+<style>
+:root{
+  --bg:#0d1117;
+  --panel:#131922;
+  --panel2:#171f2b;
+  --line:#273244;
+  --text:#e8edf5;
+  --muted:#97a5b8;
+  --accent:#69b2ff;
+  --legal:#141c29;
+  --illegal:#0b0f15;
+  --chip:#263247;
+  --chipBorder:#41516d;
+  --red:#ff6b6b;
+  --blue:#6daeff;
+  --green:#7ad87e;
+  --piece-size:72px;
+  --gap-size:8px;
+  --panel-pad:12px;
+  --flyout-h:172px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif}
+body{overflow:hidden}
+button,select{font:inherit}
+button,select{
+  background:var(--panel2);
+  color:var(--text);
+  border:1px solid var(--line);
+  border-radius:12px;
+  padding:10px 12px;
+}
+button{cursor:pointer}
+button:hover:not(:disabled){border-color:var(--accent)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.primary{border-color:var(--accent);box-shadow:0 0 0 1px rgba(105,178,255,.16)}
+.app{height:100vh;display:grid;grid-template-rows:auto 1fr;min-height:0}
+.topBar{border-bottom:1px solid var(--line);background:rgba(8,11,16,.92);padding:10px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.topBarLeft,.topBarRight{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.main{display:grid;grid-template-columns:minmax(360px,1.15fr) minmax(260px,.85fr);gap:14px;padding:14px;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:20px;padding:var(--panel-pad);box-shadow:0 12px 36px rgba(0,0,0,.22);min-height:0}
+.shipPanel{display:grid;grid-template-rows:auto 1fr;min-height:0}
+.inventoryPanel{display:grid;grid-template-rows:auto 1fr auto;min-height:0;position:relative}
+.panelHeader{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:10px;flex-wrap:wrap}
+.panelHeader h2,.flyout h3,.inventoryHeader h2{margin:0}
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.frameGridWrap{display:grid;min-height:0;place-items:center}
+.frameGrid{display:grid;gap:var(--gap-size);justify-content:center;align-content:center;padding:10px;border-radius:18px;background:#090d13;border:1px solid #1d2634}
+.space{width:var(--piece-size);height:var(--piece-size);background:var(--illegal);border:1px solid transparent;border-radius:16px;position:relative;transition:border-color .12s ease, box-shadow .12s ease, background .12s ease, transform .12s ease}
+.space.legal{background:var(--legal);border-color:#1d2737}
+.space.lockedSpace{opacity:.82}
+.space .coord{position:absolute;left:4px;top:3px;font-size:8px;color:#4e617b;pointer-events:none}
+.space.drop-eligible{cursor:pointer}
+.space.drop-target{border-color:var(--accent);box-shadow:inset 0 0 0 2px rgba(105,178,255,.28)}
+.inventoryHeader{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px}
+.inventoryScroll{min-height:0;overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(var(--piece-size), var(--piece-size)));justify-content:start;gap:var(--gap-size);padding-right:4px;padding-bottom:calc(var(--flyout-h) + 10px);align-content:start}
+.chipTile{width:var(--piece-size);height:var(--piece-size);border-radius:14px;background:var(--chip);border:1px solid var(--chipBorder);padding:4px;display:grid;grid-template-rows:auto 1fr auto;gap:3px;cursor:grab;text-align:center;user-select:none;transition:transform .1s ease,border-color .12s ease,box-shadow .12s ease}
+.chipTile:hover,.chipTile.selected,.chipTile.focusedPlaced{border-color:var(--accent)}
+.chipTile:active{transform:scale(.985)}
+.chipTile.placed{position:absolute;inset:0;width:auto;height:auto;border-radius:16px;padding:0;grid-template-rows:auto 1fr auto}
+.chipTile.dragging{opacity:.55}
+.chipTile.readonly{cursor:default}
+.chipTile.powered{box-shadow:0 0 0 1px rgba(255,255,255,.05),0 0 18px rgba(105,178,255,.18)}
+.chipTile.red{box-shadow:0 0 0 1px rgba(255,107,107,.24),0 0 14px rgba(255,107,107,.18)}
+.chipTile.blue{box-shadow:0 0 0 1px rgba(109,174,255,.24),0 0 14px rgba(109,174,255,.18)}
+.chipTile.green{box-shadow:0 0 0 1px rgba(122,216,126,.24),0 0 14px rgba(122,216,126,.18)}
+.chipTile.rgb{box-shadow:0 0 0 1px rgba(255,255,255,.24),0 0 16px rgba(255,255,255,.18)}
+.chipName{font-size:clamp(7px, calc(var(--piece-size) * 0.11), 10px);line-height:1.05;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chipEmoji{font-size:clamp(16px, calc(var(--piece-size) * 0.34), 34px);display:grid;place-items:center;line-height:1}
+.chipStats{display:flex;justify-content:space-between;align-items:center;font-size:clamp(8px, calc(var(--piece-size) * 0.13), 12px)}
+.dots{display:flex;gap:3px}
+.dot{width:7px;height:7px;border-radius:999px;background:#49586b}
+.dot.red{background:var(--red)}
+.dot.blue{background:var(--blue)}
+.dot.green{background:var(--green)}
+.flyout{border:1px solid var(--line);background:#101722;border-radius:16px;padding:12px;min-height:var(--flyout-h);position:absolute;left:0;right:0;bottom:0;display:grid;gap:8px}
+.flyout .section{display:grid;gap:6px}
+.flyoutLine{font-size:13px}
+.small{font-size:12px}
+.muted{color:var(--muted)}
+.validationNote{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.validationNote.invalid{color:#ffb4b4}
+.validationNote.valid{color:#b8f3c0}
+.flyoutHeader{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.flyoutTitleWrap{display:flex;align-items:center;gap:8px;min-width:0}
+.flyoutTitleWrap h3{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flyoutGhostButton{padding:6px 10px;border-radius:10px;font-size:12px;background:rgba(255,255,255,.03)}
+
+.battleTopBar{flex-wrap:nowrap;overflow:hidden}
+.battleTopBar .topBarLeft,.battleTopBar .topBarRight{flex-wrap:nowrap}
+.battleTopBar .topBarRight{justify-content:flex-end;min-width:0}
+.battleHudCenter{display:flex;align-items:center;gap:10px;justify-content:center;flex:1;min-width:0;overflow:hidden}
+.hudPill{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:var(--panel2);font-size:12px;white-space:nowrap}
+.hudTicker{max-width:300px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.readinessStrip{display:flex;gap:6px;align-items:center;flex-wrap:nowrap;min-width:0}
+.readinessChip{min-width:28px;height:28px;border:1px solid var(--line);border-radius:10px;display:grid;place-items:center;background:var(--panel2);font-size:14px}
+.readinessChip.spent{opacity:.4}
+.battleScene{position:relative;min-height:0;overflow:hidden;padding:18px 18px calc(var(--flyout-h) + 34px);background:radial-gradient(circle at 50% 45%, rgba(42,61,90,.22), rgba(12,16,22,.08) 40%, rgba(13,17,23,0) 70%),linear-gradient(180deg, rgba(8,11,16,.94), rgba(13,17,23,1))}
+.battleField{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);align-items:center;gap:42px;min-height:100%;position:relative}
+.battleSide{position:relative;display:grid;align-items:center;min-height:0}
+.battleSide.player{justify-items:start;padding-left:8px}
+.battleSide.enemy{justify-items:end;padding-right:8px}
+.battleShipBoard{position:relative;padding:18px 20px;display:grid;place-items:center;min-height:0}
+.battleShipBoard::before{content:'';position:absolute;inset:8px;border-radius:40px;background:radial-gradient(circle at center, rgba(34,50,76,.20), rgba(13,17,23,0) 68%);pointer-events:none}
+.battleShipBoard.playerFacing::before{background:radial-gradient(circle at 35% 50%, rgba(54,84,124,.18), rgba(13,17,23,0) 68%)}
+.battleShipBoard.enemyFacing::before{background:radial-gradient(circle at 65% 50%, rgba(90,50,54,.14), rgba(13,17,23,0) 68%)}
+.battleFrameGrid{background:transparent;border:0;padding:0;position:relative;z-index:1}
+.battleShipBoard.enemyFacing .battleFrameGrid{transform:none}
+.battleShipBoard.enemyFacing .battleFrameGrid .chipTile{transform:none}
+.battleShipBoard.enemyFacing .battleFrameGrid .chipTile:active{transform:scale(.985)}
+.battleSpace{background:rgba(11,15,21,.26);border-color:rgba(39,50,68,.28)}
+.battleSpace.legal{background:rgba(20,28,41,.34);border-color:rgba(39,50,68,.38)}
+.space.targetable{border-color:var(--accent);box-shadow:inset 0 0 0 2px rgba(105,178,255,.24)}
+.space.previewTarget{border-color:#ffd166;box-shadow:inset 0 0 0 2px rgba(255,209,102,.32)}
+.space.previewAffected{box-shadow:inset 0 0 0 2px rgba(122,216,126,.18)}
+.space.committedTarget{box-shadow:inset 0 0 0 2px rgba(255,107,107,.24)}
+.chipTile.ready{box-shadow:0 0 0 1px rgba(105,178,255,.22),0 0 20px rgba(105,178,255,.22)}
+.chipTile.targetable{cursor:pointer}
+.chipTile.disabled{opacity:.45;filter:saturate(.6)}
+.chipTile.previewTarget{border-color:#ffd166}
+.chipTile.committedTarget{border-color:var(--red)}
+.battleChipFace{width:100%;height:100%;display:grid;grid-template-rows:auto 1fr auto;gap:2px;padding:4px}
+.battleChipStats{display:flex;justify-content:space-between;align-items:center;font-size:11px;line-height:1}
+.statusRow{display:flex;gap:4px;justify-content:center;flex-wrap:wrap}
+.statusPill{padding:2px 6px;border-radius:999px;border:1px solid var(--line);font-size:10px;background:rgba(255,255,255,.03)}
+.battleOverlayFlyout{position:absolute;bottom:18px;z-index:24;width:min(320px, calc(50% - 32px));pointer-events:auto}
+.battleOverlayFlyout.playerFlyout{left:18px}
+.battleOverlayFlyout.enemyFlyout{right:18px}
+.battleFlyout{border:1px solid var(--line);background:rgba(16,23,34,.96);border-radius:16px;padding:12px;min-height:176px;display:grid;gap:8px;box-shadow:0 18px 40px rgba(0,0,0,.28)}
+.flyoutActions{display:flex;gap:8px;flex-wrap:wrap}
+.previewList{display:grid;gap:4px}
+.previewLine{font-size:12px}
+.logDropdown{position:absolute;top:54px;left:14px;right:14px;max-height:25vh;overflow:auto;border:1px solid var(--line);background:#101722;border-radius:16px;padding:10px;z-index:30;display:grid;gap:6px}
+.battlePlaybackBadge{padding:6px 10px;border:1px solid var(--line);border-radius:999px;background:rgba(255,255,255,.03);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
+.overlayBackdrop{position:fixed;inset:0;background:rgba(4,7,11,.72);backdrop-filter:blur(4px);z-index:80;display:grid;place-items:center;padding:20px}
+.overlayCard{width:min(720px, 92vw);max-height:min(78vh, 720px);overflow:hidden;display:grid;grid-template-rows:auto 1fr auto;border:1px solid var(--line);background:#101722;border-radius:20px;box-shadow:0 24px 56px rgba(0,0,0,.38)}
+.overlayHeader{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--line)}
+.overlayHeader h3{margin:0;font-size:16px}
+.overlayBody{overflow:auto;padding:14px 16px;display:grid;gap:10px}
+.overlayBody .overlayLine{font-size:13px;line-height:1.35}
+.overlayFooter{padding:12px 16px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:8px}
+.battleWinner{font-size:16px;font-weight:700}
+
+@media (max-width: 820px){
+  .main{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) minmax(0,1fr)}
+  .inventoryScroll{padding-bottom:0}
+  .flyout{position:static}
+  .battleScene{padding-bottom:18px;overflow:visible}
+  .battleField{grid-template-columns:1fr;gap:18px}
+  .battleSide.enemy,.battleSide.player{justify-items:start;padding-left:8px;padding-right:0}
+  .battleOverlayFlyout{position:static;width:auto;margin-top:12px}
+  body{overflow:auto}
+  .app{height:auto;min-height:100vh}
+  .topBar{padding:8px 12px}
+  .battleTopBar{flex-wrap:wrap}
+}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+/* -------------------------------------------------------------------------- */
+/* Content definitions                                                        */
+/* -------------------------------------------------------------------------- */
+const APP_VERSION = 'v0.9.2';
+const APP_MODES = { SETUP:'setup', BATTLE:'battle' };
+const SAVE_FORMAT_VERSION = 1;
+const SCENARIO_STORAGE_KEY = 'chipcraftBattleTestScenarios_v1';
+const CHIP_CATEGORIES = { ATTACK:'Attack', SUPPORT:'Support', INFRA:'Infrastructure' };
+const CHIP_CLASSES = { ACTIVE:'Active', PASSIVE:'Passive', AUTO:'Auto' };
+const PRIMARY_STATS = {
+  DAMAGE:'damage',
+  SHIELD:'shield value',
+  REPAIR:'repair value',
+  CLEANSE:'cleanse value',
+  MARK:'mark value',
+  SHOCK:'shock value',
+  ENERGY:'energy',
+  NONE:'none'
+};
+const TURN_PHASES = {
+  ENEMY_PREVIEW:'enemyPreview',
+  PLAYER_START:'playerStart',
+  PLAYER_ACTION:'playerAction',
+  PLAYER_END:'playerEnd',
+  ENEMY_START:'enemyStart',
+  ENEMY_ACTION:'enemyAction',
+  ENEMY_END:'enemyEnd',
+  BATTLE_OVER:'battleOver'
+};
+const AI_SCORE_KEYS = [
+  'projectedCoreDamage',
+  'projectedDisablementValue',
+  'projectedPylonDamage',
+  'projectedRelayDamage',
+  'projectedAttackChipDamage',
+  'projectedSupportChipDamage',
+  'projectedBreachWidening',
+  'projectedPoweredTargetDisruption',
+  'projectedCoreDefenseRemoval',
+  'projectedPoweredThreatPreservation',
+  'projectedCoreDefensePreservation',
+  'projectedRepairValue',
+  'projectedShieldValue'
+];
+const AI_WEIGHTS = {
+  aggressor: {
+    projectedCoreDamage: 5,
+    projectedDisablementValue: 4,
+    projectedPylonDamage: 2,
+    projectedRelayDamage: 1,
+    projectedAttackChipDamage: 3,
+    projectedSupportChipDamage: 2,
+    projectedBreachWidening: 3,
+    projectedPoweredTargetDisruption: 2,
+    projectedCoreDefenseRemoval: 3,
+    projectedPoweredThreatPreservation: 2,
+    projectedCoreDefensePreservation: 2,
+    projectedRepairValue: 1,
+    projectedShieldValue: 1
+  },
+  wrecker: {
+    projectedCoreDamage: 2,
+    projectedDisablementValue: 4,
+    projectedPylonDamage: 5,
+    projectedRelayDamage: 5,
+    projectedAttackChipDamage: 2,
+    projectedSupportChipDamage: 2,
+    projectedBreachWidening: 3,
+    projectedPoweredTargetDisruption: 5,
+    projectedCoreDefenseRemoval: 3,
+    projectedPoweredThreatPreservation: 2,
+    projectedCoreDefensePreservation: 2,
+    projectedRepairValue: 1,
+    projectedShieldValue: 1
+  },
+  bulwark: {
+    projectedCoreDamage: 3,
+    projectedDisablementValue: 3,
+    projectedPylonDamage: 2,
+    projectedRelayDamage: 2,
+    projectedAttackChipDamage: 3,
+    projectedSupportChipDamage: 2,
+    projectedBreachWidening: 2,
+    projectedPoweredTargetDisruption: 2,
+    projectedCoreDefenseRemoval: 2,
+    projectedPoweredThreatPreservation: 4,
+    projectedCoreDefensePreservation: 4,
+    projectedRepairValue: 4,
+    projectedShieldValue: 4
+  }
+};
+const AI_PRESETS = [
+  { id:'aggressor', name:'Aggressor' },
+  { id:'wrecker', name:'Wrecker' },
+  { id:'bulwark', name:'Bulwark' }
+];
+const FRAME_DEFINITIONS = [
+  { id:'scout', name:'Scout Frame', cols:5, rows:5, legalSpaces:['2,0','1,1','2,1','3,1','0,2','1,2','2,2','3,2','4,2','0,3','1,3','2,3','3,3','4,3','0,4','1,4','3,4','4,4'] },
+  { id:'frigate', name:'Frigate Frame', cols:7, rows:5, legalSpaces:['2,0','4,0','1,1','2,1','3,1','4,1','5,1','0,2','1,2','2,2','3,2','4,2','5,2','6,2','0,3','1,3','2,3','3,3','4,3','5,3','6,3','0,4','1,4','2,4','4,4','5,4','6,4'] },
+  { id:'cruiser', name:'Cruiser Frame', cols:9, rows:6, legalSpaces:['4,0','3,1','4,1','5,1','0,2','2,2','3,2','4,2','5,2','6,2','8,2','0,3','1,3','2,3','3,3','4,3','5,3','6,3','7,3','8,3','0,4','1,4','2,4','3,4','4,4','5,4','6,4','7,4','8,4','0,5','1,5','3,5','4,5','5,5','7,5','8,5'] }
+];
+function shapeSpec(family, size){
+  if(!family || family === 'none') return null;
+  return { family, size:size || 1 };
+}
+function battleSpec(options){
+  return Object.assign({
+    role:'',
+    timing:'activation',
+    energyCost:null,
+    target:{ kind:'none' },
+    shape:null,
+    targetFilter:null,
+    chosen:null,
+    effects:[],
+    notes:[]
+  }, options || {});
+}
+const CHIP_DEFINITIONS = [
+  { id:'cannon', name:'Cannon', emoji:'🔫', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Focused baseline weapon.', battle:battleSpec({ role:'focused baseline weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:3 }] }) },
+  { id:'scatter-gun', name:'Scatter Gun', emoji:'🧨', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Spread weapon.', battle:battleSpec({ role:'spread weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 2), chosen:{ kind:'upTo', count:2, pool:'affected-enemy' }, effects:[{ kind:'damage', applyTo:'chosen', amount:1 }] }) },
+  { id:'piercer', name:'Piercer', emoji:'📍', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Ignores Shield on hit.', battle:battleSpec({ role:'defense-punishing weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:1, ignoresShield:true }] }) },
+  { id:'beam', name:'Beam', emoji:'📡', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Maintained-ramp weapon.', battle:battleSpec({ role:'maintained-ramp weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Spike', 1), effects:[{ kind:'damage', applyTo:'affected-enemy', amountBase:1, amountCounter:'beamCharge' }], notes:['Beam charge increases by 1 at Turn End if activated this turn.', 'Beam charge resets to 0 at Turn End if unused.', 'Beam charge resets to 0 after combat.'] }) },
+  { id:'breacher', name:'Breacher', emoji:'💥', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Bonus damage into frontier.', battle:battleSpec({ role:'frontier opener weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:2 }, { kind:'damage', applyTo:'target', amount:1, condition:'targetIsFrontier' }] }) },
+  { id:'siege-gun', name:'Siege Gun', emoji:'🚀', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Persistent-ramp weapon.', battle:battleSpec({ role:'persistent-ramp weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'affected-enemy', amountBase:2, amountCounter:'siege' }], notes:['Siege increases by 1 at Turn End if activated this turn to a max of 2.', 'Siege does not decay when unused during combat.', 'Siege resets to 0 after combat.'] }) },
+  { id:'firestarter', name:'Firestarter', emoji:'🔥', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Applies Fire.', battle:battleSpec({ role:'status pressure weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:1 }, { kind:'status', applyTo:'target', status:'Fire', amount:1 }] }) },
+  { id:'saboteur', name:'Saboteur', emoji:'🛠️', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Disrupts powered targets.', battle:battleSpec({ role:'anti-power disruption weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:1 }, { kind:'status', applyTo:'target', status:'Jammed', amount:1, condition:'targetIsPowered' }] }) },
+  { id:'opportunist', name:'Opportunist', emoji:'🎯', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Payoff vs damaged targets.', battle:battleSpec({ role:'payoff weapon', energyCost:1, target:{ kind:'enemy-frontier' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:2 }, { kind:'damage', applyTo:'target', amount:1, condition:'targetIsDamaged' }] }) },
+  { id:'turret', name:'Turret', emoji:'🗼', category:CHIP_CATEGORIES.ATTACK, chipClass:CHIP_CLASSES.AUTO, hp:2, primaryStat:PRIMARY_STATS.DAMAGE, summary:'Random frontier pressure.', battle:battleSpec({ role:'random frontier pressure', timing:'automaticResolution', target:{ kind:'enemy-frontier-random' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'damage', applyTo:'target', amount:1 }], notes:['Resolves automatically during Automatic Resolution.'] }) },
+  { id:'shield-emitter', name:'Shield Emitter', emoji:'🛡️', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.PASSIVE, hp:4, primaryStat:PRIMARY_STATS.SHIELD, summary:'Temporary area shielding.', battle:battleSpec({ role:'temporary area shielding', timing:'passive', target:{ kind:'self' }, shape:shapeSpec('Fan', 1), targetFilter:'allied-affected', effects:[{ kind:'shield', applyTo:'filtered', amount:1 }] }) },
+  { id:'plating', name:'Plating', emoji:'🧱', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.PASSIVE, hp:4, primaryStat:PRIMARY_STATS.REPAIR, summary:'Passive local repair support.', battle:battleSpec({ role:'passive adjacent repair support', timing:'ownerTurnStart', target:{ kind:'self' }, shape:shapeSpec('Cross', 1), targetFilter:'orthogonally-adjacent-allied-damaged', chosen:{ kind:'exactly', count:1, pool:'filtered' }, effects:[{ kind:'repair', applyTo:'chosen', amount:2 }] }) },
+  { id:'stabilizer', name:'Stabilizer', emoji:'✨', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.ACTIVE, hp:4, primaryStat:PRIMARY_STATS.SHIELD, summary:'Targeted emergency shielding.', battle:battleSpec({ role:'targeted emergency shielding', energyCost:1, target:{ kind:'allied-chip' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'shield', applyTo:'target', amount:2 }] }) },
+  { id:'purifier', name:'Purifier', emoji:'🧼', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.ACTIVE, hp:3, primaryStat:PRIMARY_STATS.CLEANSE, summary:'Status cleanse support.', battle:battleSpec({ role:'status cleanse support', energyCost:1, target:{ kind:'self' }, shape:shapeSpec('Dot', 1), targetFilter:'allied-affected', chosen:{ kind:'exactly', count:1, pool:'filtered' }, effects:[{ kind:'cleanse', applyTo:'chosen', amount:1, mode:'oldestNegative' }] }) },
+  { id:'reconstructor', name:'Reconstructor', emoji:'🔧', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.ACTIVE, hp:3, primaryStat:PRIMARY_STATS.REPAIR, summary:'Repair support.', battle:battleSpec({ role:'repair support', energyCost:1, target:{ kind:'allied-chip' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'repair', applyTo:'target', amount:1 }] }) },
+  { id:'scope', name:'Scope', emoji:'🔭', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.PASSIVE, hp:2, primaryStat:PRIMARY_STATS.MARK, summary:'Attack-chip mark amplifier.', battle:battleSpec({ role:'mark amplifier support', timing:'passive', target:{ kind:'self' }, shape:shapeSpec('Cross', 1), targetFilter:'allied-attack-affected', effects:[{ kind:'statusAura', applyTo:'filtered', status:'MarkOnHit', amountFromPrimaryStat:true }] }) },
+  { id:'booby-trap', name:'Booby Trap', emoji:'⚡', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.PASSIVE, hp:3, primaryStat:PRIMARY_STATS.SHOCK, summary:'Reactive deterrent support.', battle:battleSpec({ role:'reactive deterrent support', timing:'ownerTurnStart', target:{ kind:'self' }, shape:shapeSpec('Cross', 1), targetFilter:'allied-affected', effects:[{ kind:'status', applyTo:'filtered', status:'Shock', amount:1 }] }) },
+  { id:'capacitor', name:'Capacitor', emoji:'🔋', category:CHIP_CATEGORIES.SUPPORT, chipClass:CHIP_CLASSES.ACTIVE, hp:3, primaryStat:PRIMARY_STATS.NONE, summary:'Overload setup support.', battle:battleSpec({ role:'overload setup support', energyCost:1, target:{ kind:'any-chip' }, shape:shapeSpec('Dot', 1), effects:[{ kind:'status', applyTo:'target', status:'Overload', amount:1 }] }) },
+  { id:'relay', name:'Relay', emoji:'🔗', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:3, primaryStat:PRIMARY_STATS.NONE, summary:'Power extension infrastructure.', battle:battleSpec({ role:'power extension infrastructure', timing:'passive', target:{ kind:'none' }, shape:null, effects:[] }) },
+  { id:'bulkhead', name:'Bulkhead', emoji:'⬛', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:5, primaryStat:PRIMARY_STATS.NONE, summary:'Structural barrier chip.', battle:battleSpec({ role:'structural barrier chip', timing:'passive', target:{ kind:'none' }, shape:null, effects:[] }) },
+  { id:'scout-core', name:'Scout Core', emoji:'☀️', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:7, primaryStat:PRIMARY_STATS.ENERGY, summary:'Provides 3 Energy.', isCore:true, battle:battleSpec({ role:'command-energy win-condition chip', timing:'passive', target:{ kind:'none' }, shape:null, effects:[], printedEnergy:3, notes:['Losing allied Scout Core loses combat.', 'Disabling enemy Scout Core wins combat.'] }) },
+  { id:'frigate-core', name:'Frigate Core', emoji:'🌟', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:8, primaryStat:PRIMARY_STATS.ENERGY, summary:'Provides 4 Energy.', isCore:true, battle:battleSpec({ role:'command-energy win-condition chip', timing:'passive', target:{ kind:'none' }, shape:null, effects:[], printedEnergy:4, notes:['Losing allied Frigate Core loses combat.', 'Disabling enemy Frigate Core wins combat.'] }) },
+  { id:'cruiser-core', name:'Cruiser Core', emoji:'💠', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:9, primaryStat:PRIMARY_STATS.ENERGY, summary:'Provides 5 Energy.', isCore:true, battle:battleSpec({ role:'command-energy win-condition chip', timing:'passive', target:{ kind:'none' }, shape:null, effects:[], printedEnergy:5, notes:['Losing allied Cruiser Core loses combat.', 'Disabling enemy Cruiser Core wins combat.'] }) },
+  { id:'pylon-red', name:'Red Pylon', emoji:'🟥', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:4, primaryStat:PRIMARY_STATS.NONE, summary:'Provides Red power.', isPylon:true, pylonColor:'red', battle:battleSpec({ role:'power-color infrastructure chip', timing:'passive', target:{ kind:'self' }, shape:shapeSpec('Radial', 1), effects:[] }) },
+  { id:'pylon-blue', name:'Blue Pylon', emoji:'🟦', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:4, primaryStat:PRIMARY_STATS.NONE, summary:'Provides Blue power.', isPylon:true, pylonColor:'blue', battle:battleSpec({ role:'power-color infrastructure chip', timing:'passive', target:{ kind:'self' }, shape:shapeSpec('Radial', 1), effects:[] }) },
+  { id:'pylon-green', name:'Green Pylon', emoji:'🟩', category:CHIP_CATEGORIES.INFRA, chipClass:CHIP_CLASSES.PASSIVE, hp:4, primaryStat:PRIMARY_STATS.NONE, summary:'Provides Green power.', isPylon:true, pylonColor:'green', battle:battleSpec({ role:'power-color infrastructure chip', timing:'passive', target:{ kind:'self' }, shape:shapeSpec('Radial', 1), effects:[] }) }
+];
+const CHIP_DEFINITIONS_BY_ID = Object.fromEntries(CHIP_DEFINITIONS.map(def => [def.id, def]));
+const FRAME_DEFINITIONS_BY_ID = Object.fromEntries(FRAME_DEFINITIONS.map(def => [def.id, def]));
+const AI_PRESETS_BY_ID = Object.fromEntries(AI_PRESETS.map(preset => [preset.id, preset]));
+
+/* -------------------------------------------------------------------------- */
+/* App state and factories                                                    */
+/* -------------------------------------------------------------------------- */
+let nextChipInstanceNumber = 1;
+let nextScenarioNumber = 1;
+
+function deepClone(value){
+  if(typeof structuredClone === 'function') return structuredClone(value);
+  return JSON.parse(JSON.stringify(value));
+}
+function createScenarioId(){
+  nextScenarioNumber += 1;
+  return 'scenario__' + nextScenarioNumber;
+}
+function createChipInstanceId(chipTypeId){
+  nextChipInstanceNumber += 1;
+  return chipTypeId + '__' + nextChipInstanceNumber;
+}
+function createBuiltChipInstance(chipTypeId){
+  return { chipInstanceId:createChipInstanceId(chipTypeId), chipTypeId };
+}
+function createEmptySideSetup(options){
+  return {
+    frameId: options.frameId || 'scout',
+    builtChipInstances: [],
+    placedLayoutBySpaceId: {},
+    aiPresetId: options.aiPresetId ?? null,
+    isLocked: false
+  };
+}
+function createEmptyScenario(){
+  return {
+    scenarioId: createScenarioId(),
+    name: 'Battle Test ' + APP_VERSION,
+    notes: '',
+    playerSetup: createEmptySideSetup({ frameId:'scout', aiPresetId:null }),
+    enemySetup: createEmptySideSetup({ frameId:'scout', aiPresetId:AI_PRESETS[0].id })
+  };
+}
+
+function createScenarioFromSerializable(savedScenario){
+  return {
+    scenarioId: createScenarioId(),
+    name: typeof savedScenario.name === 'string' && savedScenario.name.trim() ? savedScenario.name.trim() : ('Battle Test ' + APP_VERSION),
+    notes: typeof savedScenario.notes === 'string' ? savedScenario.notes : '',
+    playerSetup: createSideSetupFromSerializable(savedScenario.playerSetup, 'player'),
+    enemySetup: createSideSetupFromSerializable(savedScenario.enemySetup, 'enemy')
+  };
+}
+function createSideSetupFromSerializable(savedSideSetup, sideKey){
+  const fallback = sideKey === 'player'
+    ? createEmptySideSetup({ frameId:'scout', aiPresetId:null })
+    : createEmptySideSetup({ frameId:'scout', aiPresetId:AI_PRESETS[0].id });
+  const sideSetup = deepClone(fallback);
+  if(!savedSideSetup || typeof savedSideSetup !== 'object') return sideSetup;
+  sideSetup.frameId = typeof savedSideSetup.frameId === 'string' ? savedSideSetup.frameId : sideSetup.frameId;
+  sideSetup.builtChipInstances = Array.isArray(savedSideSetup.builtChipInstances)
+    ? savedSideSetup.builtChipInstances.map(entry => ({
+        chipInstanceId: String(entry.chipInstanceId || createChipInstanceId(entry.chipTypeId || 'chip')),
+        chipTypeId: String(entry.chipTypeId || '')
+      }))
+    : [];
+  sideSetup.placedLayoutBySpaceId = savedSideSetup.placedLayoutBySpaceId && typeof savedSideSetup.placedLayoutBySpaceId === 'object'
+    ? Object.fromEntries(Object.entries(savedSideSetup.placedLayoutBySpaceId).map(([spaceId, chipInstanceId]) => [String(spaceId), String(chipInstanceId)]))
+    : {};
+  sideSetup.aiPresetId = sideKey === 'enemy'
+    ? (savedSideSetup.aiPresetId ?? sideSetup.aiPresetId)
+    : null;
+  sideSetup.isLocked = false;
+  return sideSetup;
+}
+function serializeScenarioForSave(scenario){
+  const serializeSide = sideSetup => ({
+    frameId: sideSetup.frameId,
+    builtChipInstances: sideSetup.builtChipInstances.map(entry => ({ chipInstanceId:entry.chipInstanceId, chipTypeId:entry.chipTypeId })),
+    placedLayoutBySpaceId: deepClone(sideSetup.placedLayoutBySpaceId),
+    aiPresetId: sideSetup.aiPresetId ?? null
+  });
+  return {
+    name: scenario.name,
+    notes: scenario.notes || '',
+    playerSetup: serializeSide(scenario.playerSetup),
+    enemySetup: serializeSide(scenario.enemySetup)
+  };
+}
+function getSavedScenarioCompatibilityIssues(savedScenario){
+  const issues = [];
+  if(!savedScenario || typeof savedScenario !== 'object'){
+    issues.push('Saved scenario payload is missing or invalid.');
+    return issues;
+  }
+  const sideEntries = [
+    ['player', savedScenario.playerSetup, false],
+    ['enemy', savedScenario.enemySetup, true]
+  ];
+  for(const [sideKey, sideSetup, requiresAiPreset] of sideEntries){
+    if(!sideSetup || typeof sideSetup !== 'object'){
+      issues.push(getSideLabel(sideKey) + ' setup is missing.');
+      continue;
+    }
+    if(!getFrameDef(sideSetup.frameId)) issues.push(getSideLabel(sideKey) + ' frame is missing: ' + sideSetup.frameId + '.');
+    const builtIds = new Set();
+    const builtChipInstances = Array.isArray(sideSetup.builtChipInstances) ? sideSetup.builtChipInstances : [];
+    for(const builtInstance of builtChipInstances){
+      if(!builtInstance || typeof builtInstance !== 'object'){
+        issues.push(getSideLabel(sideKey) + ' built chip entry is invalid.');
+        continue;
+      }
+      const chipInstanceId = String(builtInstance.chipInstanceId || '');
+      const chipTypeId = String(builtInstance.chipTypeId || '');
+      if(!chipInstanceId) issues.push(getSideLabel(sideKey) + ' built chip entry is missing chipInstanceId.');
+      if(builtIds.has(chipInstanceId)) issues.push(getSideLabel(sideKey) + ' has duplicate chip instance id: ' + chipInstanceId + '.');
+      builtIds.add(chipInstanceId);
+      if(!getChipDef(chipTypeId)) issues.push(getSideLabel(sideKey) + ' references missing chip definition: ' + chipTypeId + '.');
+    }
+    const placedLayoutBySpaceId = sideSetup.placedLayoutBySpaceId && typeof sideSetup.placedLayoutBySpaceId === 'object' ? sideSetup.placedLayoutBySpaceId : {};
+    for(const [spaceId, chipInstanceId] of Object.entries(placedLayoutBySpaceId)){
+      if(!builtIds.has(String(chipInstanceId))) issues.push(getSideLabel(sideKey) + ' placed layout references missing chip instance: ' + chipInstanceId + '.');
+      const frameLegalSpaces = getLegalSpaceIds(sideSetup.frameId);
+      if(frameLegalSpaces.size && !frameLegalSpaces.has(String(spaceId))) issues.push(getSideLabel(sideKey) + ' placed layout references illegal space: ' + spaceId + '.');
+    }
+    if(requiresAiPreset && !getAiPreset(sideSetup.aiPresetId)) issues.push('Enemy AI preset is missing: ' + sideSetup.aiPresetId + '.');
+  }
+  return issues;
+}
+function loadStoredScenarioCollection(){
+  try{
+    const raw = window.localStorage.getItem(SCENARIO_STORAGE_KEY);
+    if(!raw) return { ok:true, collection:{ formatVersion:SAVE_FORMAT_VERSION, scenarios:[] } };
+    const parsed = JSON.parse(raw);
+    if(!parsed || typeof parsed !== 'object') return { ok:false, reason:'Saved scenario data is corrupted.' };
+    if(parsed.formatVersion !== SAVE_FORMAT_VERSION) return { ok:false, reason:'Saved scenario data uses an incompatible save format.' };
+    if(!Array.isArray(parsed.scenarios)) return { ok:false, reason:'Saved scenario data is missing the scenario list.' };
+    return { ok:true, collection:parsed };
+  }catch(error){
+    return { ok:false, reason:'Saved scenario data could not be read.' };
+  }
+}
+function persistStoredScenarioCollection(collection){
+  window.localStorage.setItem(SCENARIO_STORAGE_KEY, JSON.stringify(collection));
+  return { ok:true };
+}
+function saveScenarioToStorage(scenario){
+  const loadResult = loadStoredScenarioCollection();
+  if(!loadResult.ok) return loadResult;
+  const collection = loadResult.collection;
+  const serialized = serializeScenarioForSave(scenario);
+  const existingIndex = collection.scenarios.findIndex(entry => entry && entry.name === serialized.name);
+  if(existingIndex >= 0) collection.scenarios[existingIndex] = serialized;
+  else collection.scenarios.push(serialized);
+  persistStoredScenarioCollection(collection);
+  return { ok:true, savedScenario:serialized, replaced:existingIndex >= 0 };
+}
+function syncIdCountersFromScenario(scenario){
+  if(!scenario || typeof scenario !== 'object') return;
+  const scenarioMatch = String(scenario.scenarioId || '').match(/(\d+)$/);
+  if(scenarioMatch) nextScenarioNumber = Math.max(nextScenarioNumber, Number(scenarioMatch[1]));
+  for(const sideSetup of [scenario.playerSetup, scenario.enemySetup]){
+    if(!sideSetup || !Array.isArray(sideSetup.builtChipInstances)) continue;
+    for(const builtInstance of sideSetup.builtChipInstances){
+      const match = String(builtInstance.chipInstanceId || '').match(/__(\d+)$/);
+      if(match) nextChipInstanceNumber = Math.max(nextChipInstanceNumber, Number(match[1]));
+    }
+  }
+}
+function startNewScenario(){
+  appState.scenario = createEmptyScenario();
+  appState.lockedSnapshot = null;
+  resetCombatState();
+  resetAiEvaluationState();
+  appState.mode = APP_MODES.SETUP;
+  appState.ui = createInitialUIState();
+}
+function loadScenarioIntoSetup(savedScenario){
+  const compatibilityIssues = getSavedScenarioCompatibilityIssues(savedScenario);
+  if(compatibilityIssues.length) return { ok:false, reason:compatibilityIssues.join('\n') };
+  appState.scenario = createScenarioFromSerializable(savedScenario);
+  syncIdCountersFromScenario(appState.scenario);
+  appState.lockedSnapshot = null;
+  resetCombatState();
+  resetAiEvaluationState();
+  appState.mode = APP_MODES.SETUP;
+  appState.ui = createInitialUIState();
+  const playerValidation = validateSideSetup('player', appState.scenario.playerSetup);
+  const enemyValidation = validateSideSetup('enemy', appState.scenario.enemySetup);
+  return { ok:true, validations:[playerValidation, enemyValidation] };
+}
+function createInitialUIState(){
+  return {
+    activeSide: 'player',
+    selectedCatalogChipTypeId: null,
+    focused: { kind:'catalog', id:'cannon', side:'player' },
+    dragPayload: null,
+    battle: {
+      focusedChipId: null,
+      preview: null,
+      chosenChipIds: [],
+      inspectedChipId: null,
+      showLog: false,
+      overlay: null,
+      playbackReadout: null,
+      isPlaybackLocked: false
+    }
+  };
+}
+function createInitialCombatState(){ return null; }
+function createInitialAiEvaluationState(){ return null; }
+const appState = {
+  mode: APP_MODES.SETUP,
+  scenario: createEmptyScenario(),
+  lockedSnapshot: null,
+  combat: createInitialCombatState(),
+  aiEvaluation: createInitialAiEvaluationState(),
+  ui: createInitialUIState()
+};
+
+/* -------------------------------------------------------------------------- */
+/* General helpers                                                            */
+/* -------------------------------------------------------------------------- */
+function getChipDef(chipTypeId){ return CHIP_DEFINITIONS_BY_ID[chipTypeId] || null; }
+function getFrameDef(frameId){ return FRAME_DEFINITIONS_BY_ID[frameId] || null; }
+function getAiPreset(aiPresetId){ return AI_PRESETS_BY_ID[aiPresetId] || null; }
+function getEnemySideKey(sideKey){ return sideKey === 'player' ? 'enemy' : 'player'; }
+function getSideSetup(sideKey){ return sideKey === 'player' ? appState.scenario.playerSetup : appState.scenario.enemySetup; }
+function setSideSetup(sideKey, sideSetup){
+  if(sideKey === 'player') appState.scenario.playerSetup = sideSetup;
+  else appState.scenario.enemySetup = sideSetup;
+}
+function getActiveSideKey(){ return appState.ui.activeSide; }
+function getActiveSideSetup(){ return getSideSetup(getActiveSideKey()); }
+function getSideLabel(sideKey){ return sideKey === 'player' ? 'Player' : 'Enemy'; }
+function isActiveSide(sideKey){ return getActiveSideKey() === sideKey; }
+function canEnterEnemySetup(){ return getSideSetup('player').isLocked || getActiveSideKey() === 'enemy'; }
+function isSideEditable(sideKey){ return isActiveSide(sideKey) && !getSideSetup(sideKey).isLocked; }
+function clearSelection(){ appState.ui.selectedCatalogChipTypeId = null; }
+function clearDrag(){ appState.ui.dragPayload = null; }
+function resetCombatState(){ appState.combat = createInitialCombatState(); }
+function resetAiEvaluationState(){ appState.aiEvaluation = createInitialAiEvaluationState(); }
+function focusCatalogChip(chipTypeId){
+  appState.ui.focused = { kind:'catalog', id:chipTypeId, side:getActiveSideKey() };
+}
+function focusPlacedChip(sideKey, chipInstanceId){
+  appState.ui.focused = { kind:'placed', id:chipInstanceId, side:sideKey };
+}
+function setActiveSide(sideKey){
+  if(sideKey === 'enemy' && !canEnterEnemySetup()) return;
+  appState.ui.activeSide = sideKey;
+  clearSelection();
+  const focused = appState.ui.focused;
+  if(focused && focused.kind === 'placed' && focused.side !== sideKey) focusCatalogChip('cannon');
+}
+function getChipEnergyCost(chipDef){
+  if(!chipDef) return null;
+  if(chipDef.chipClass !== CHIP_CLASSES.ACTIVE) return null;
+  return chipDef.battle && typeof chipDef.battle.energyCost === 'number' ? chipDef.battle.energyCost : 1;
+}
+function getChipBattleShapeSpec(chipDef){
+  return chipDef && chipDef.battle ? chipDef.battle.shape : null;
+}
+function getChipTargetSpec(chipDef){
+  return chipDef && chipDef.battle ? chipDef.battle.target : { kind:'none' };
+}
+function getChipEffectSpec(chipDef){
+  return chipDef && chipDef.battle ? chipDef.battle.effects : [];
+}
+function normalizeScore(value){
+  if(value <= 0) return 0;
+  if(value >= 3) return 3;
+  return Math.round(value);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Geometry owner                                                             */
+/* -------------------------------------------------------------------------- */
+function parseSpaceId(spaceId){
+  const parts = spaceId.split(',').map(Number);
+  return { x:parts[0], y:parts[1] };
+}
+function makeSpaceId(x, y){ return x + ',' + y; }
+function getLegalSpaceIds(frameId){
+  const frame = getFrameDef(frameId);
+  return new Set(frame ? frame.legalSpaces : []);
+}
+function getFrameGrid(frameId){
+  const frame = getFrameDef(frameId);
+  if(!frame) return { cols:0, rows:0, legal:new Set(), cells:[] };
+  const legal = getLegalSpaceIds(frameId);
+  const cells = [];
+  for(let y = 0; y < frame.rows; y += 1){
+    for(let x = 0; x < frame.cols; x += 1){
+      const id = makeSpaceId(x, y);
+      cells.push({ id, x, y, legal:legal.has(id) });
+    }
+  }
+  return { cols:frame.cols, rows:frame.rows, legal, cells };
+}
+function getAdjacentSpaceIds(spaceId, mode){
+  const point = parseSpaceId(spaceId);
+  const orthogonal = [
+    makeSpaceId(point.x + 1, point.y),
+    makeSpaceId(point.x - 1, point.y),
+    makeSpaceId(point.x, point.y + 1),
+    makeSpaceId(point.x, point.y - 1)
+  ];
+  if(mode === 'orthogonal') return orthogonal;
+  const out = [];
+  for(let dy = -1; dy <= 1; dy += 1){
+    for(let dx = -1; dx <= 1; dx += 1){
+      if(dx === 0 && dy === 0) continue;
+      out.push(makeSpaceId(point.x + dx, point.y + dy));
+    }
+  }
+  return out;
+}
+function getCombatCoordsForSpace(sideKey, frameId, spaceId){
+  const frame = getFrameDef(frameId);
+  const local = parseSpaceId(spaceId);
+  if(!frame) return local;
+  if(sideKey === 'player') return { x:local.y, y:local.x };
+  return { x:local.y, y:(frame.cols - 1) - local.x };
+}
+function getLocalCoordsFromCombat(sideKey, frameId, combatPoint){
+  const frame = getFrameDef(frameId);
+  if(!frame) return { x:combatPoint.x, y:combatPoint.y };
+  if(sideKey === 'player') return { x:combatPoint.y, y:combatPoint.x };
+  return { x:(frame.cols - 1) - combatPoint.y, y:combatPoint.x };
+}
+function getBattleDisplayDimensions(frameId){
+  const frame = getFrameDef(frameId);
+  if(!frame) return { cols:0, rows:0 };
+  return { cols:frame.rows, rows:frame.cols };
+}
+function getBattleDisplayPoint(sideKey, frameId, localSpaceId){
+  const dims = getBattleDisplayDimensions(frameId);
+  const combat = getCombatCoordsForSpace(sideKey, frameId, localSpaceId);
+  if(sideKey === 'player') return { x:(dims.cols - 1) - combat.x, y:combat.y };
+  return combat;
+}
+function getLocalSpaceIdFromBattleDisplayPoint(sideKey, frameId, displayPoint){
+  const dims = getBattleDisplayDimensions(frameId);
+  const combatPoint = sideKey === 'player'
+    ? { x:(dims.cols - 1) - displayPoint.x, y:displayPoint.y }
+    : { x:displayPoint.x, y:displayPoint.y };
+  const localPoint = getLocalCoordsFromCombat(sideKey, frameId, combatPoint);
+  return makeSpaceId(localPoint.x, localPoint.y);
+}
+function getBattleDisplayGrid(sideKey, frameId){
+  const dims = getBattleDisplayDimensions(frameId);
+  const legal = getLegalSpaceIds(frameId);
+  const cells = [];
+  for(let y = 0; y < dims.rows; y += 1){
+    for(let x = 0; x < dims.cols; x += 1){
+      const localSpaceId = getLocalSpaceIdFromBattleDisplayPoint(sideKey, frameId, { x, y });
+      cells.push({ id:localSpaceId, x, y, legal:legal.has(localSpaceId) });
+    }
+  }
+  return { cols:dims.cols, rows:dims.rows, legal, cells };
+}
+function getShapeOffsets(shape){
+  if(!shape) return [{ x:0, y:0 }];
+  const size = Math.max(1, shape.size || 1);
+  const offsets = [];
+  const push = (x, y) => offsets.push({ x, y });
+  switch(shape.family){
+    case 'Dot':
+      for(let y = 0; y < size; y += 1){
+        for(let x = 0; x < size; x += 1){ push(x, y); }
+      }
+      break;
+    case 'Cross':
+      push(0, 0);
+      for(let i = 1; i <= size; i += 1){
+        push(i, 0); push(-i, 0); push(0, i); push(0, -i);
+      }
+      break;
+    case 'Diagonal':
+      push(0, 0);
+      for(let i = 1; i <= size; i += 1){
+        push(i, i); push(i, -i); push(-i, i); push(-i, -i);
+      }
+      break;
+    case 'Radial':
+      for(let y = -size; y <= size; y += 1){
+        for(let x = -size; x <= size; x += 1){
+          if(Math.max(Math.abs(x), Math.abs(y)) <= size) push(x, y);
+        }
+      }
+      break;
+    case 'Spike':
+      for(let x = 0; x <= size; x += 1) push(x, 0);
+      break;
+    case 'Fan':
+      for(let x = 0; x <= size; x += 1){
+        const yMax = size - x;
+        for(let y = -yMax; y <= yMax; y += 1) push(x, y);
+      }
+      break;
+    default:
+      push(0, 0);
+      break;
+  }
+  const deduped = new Map();
+  for(const offset of offsets) deduped.set(offset.x + ',' + offset.y, offset);
+  return Array.from(deduped.values());
+}
+function getAffectedSpaceIdsFromTarget(sideKey, frameId, targetSpaceId, shape){
+  if(!targetSpaceId || !shape) return targetSpaceId ? [targetSpaceId] : [];
+  const legal = getLegalSpaceIds(frameId);
+  const targetCombat = getCombatCoordsForSpace(sideKey, frameId, targetSpaceId);
+  const affected = [];
+  for(const offset of getShapeOffsets(shape)){
+    const combatPoint = { x:targetCombat.x + offset.x, y:targetCombat.y + offset.y };
+    const localPoint = getLocalCoordsFromCombat(sideKey, frameId, combatPoint);
+    const localSpaceId = makeSpaceId(localPoint.x, localPoint.y);
+    if(legal.has(localSpaceId)) affected.push(localSpaceId);
+  }
+  return affected;
+}
+function getOccupancyBySpaceId(sideStateLike){
+  if(!sideStateLike) return {};
+  if(sideStateLike.placedLayoutBySpaceId) return Object.assign({}, sideStateLike.placedLayoutBySpaceId);
+  const out = {};
+  const chipsById = sideStateLike.chipsById || {};
+  for(const chipState of Object.values(chipsById)){
+    if(!chipState || chipState.isDisabled || !chipState.spaceId) continue;
+    out[chipState.spaceId] = chipState.chipInstanceId;
+  }
+  return out;
+}
+function getDisabledHoleSpaceIds(sideStateLike){
+  const out = new Set();
+  if(!sideStateLike || !sideStateLike.chipsById) return out;
+  for(const chipState of Object.values(sideStateLike.chipsById)){
+    if(!chipState || !chipState.spaceId || !chipState.isDisabled) continue;
+    out.add(chipState.spaceId);
+  }
+  return out;
+}
+function getLaneIdForCombatPoint(combatPoint){
+  return String(combatPoint.y);
+}
+function getFrontierSpaceIds(attackerSideKey, defenderStateLike){
+  if(!defenderStateLike) return [];
+  const defenderSideKey = defenderStateLike.sideKey || (attackerSideKey === 'player' ? 'enemy' : 'player');
+  const occupied = getOccupancyBySpaceId(defenderStateLike);
+  const disabledHoles = getDisabledHoleSpaceIds(defenderStateLike);
+  const occupiedEntries = Object.entries(occupied).map(([spaceId, chipInstanceId]) => ({
+    spaceId,
+    chipInstanceId,
+    combat:getCombatCoordsForSpace(defenderSideKey, defenderStateLike.frameId, spaceId)
+  }));
+  if(!occupiedEntries.length) return [];
+
+  const occupiedByCombatKey = new Map();
+  const entriesByLaneId = new Map();
+  for(const entry of occupiedEntries){
+    occupiedByCombatKey.set(makeSpaceId(entry.combat.x, entry.combat.y), entry);
+    const laneId = getLaneIdForCombatPoint(entry.combat);
+    if(!entriesByLaneId.has(laneId)) entriesByLaneId.set(laneId, []);
+    entriesByLaneId.get(laneId).push(entry);
+  }
+
+  const frontierLocal = new Set();
+  for(const laneEntries of entriesByLaneId.values()){
+    const forwardMostX = Math.min(...laneEntries.map(entry => entry.combat.x));
+    for(const entry of laneEntries){
+      if(entry.combat.x === forwardMostX) frontierLocal.add(entry.spaceId);
+    }
+  }
+
+  for(const holeSpaceId of disabledHoles){
+    const holeCombat = getCombatCoordsForSpace(defenderSideKey, defenderStateLike.frameId, holeSpaceId);
+    for(const offset of [{ x:-1, y:0 }, { x:1, y:0 }, { x:0, y:-1 }, { x:0, y:1 }]){
+      const occupiedEntry = occupiedByCombatKey.get(makeSpaceId(holeCombat.x + offset.x, holeCombat.y + offset.y));
+      if(occupiedEntry) frontierLocal.add(occupiedEntry.spaceId);
+    }
+  }
+
+  return Array.from(frontierLocal);
+}
+function isFrontierSpace(attackerSideKey, defenderStateLike, spaceId){
+  return getFrontierSpaceIds(attackerSideKey, defenderStateLike).includes(spaceId);
+}
+function getDefaultHostileTargetChipIds(attackerSideKey, defenderStateLike){
+  const occupied = getOccupancyBySpaceId(defenderStateLike);
+  return getFrontierSpaceIds(attackerSideKey, defenderStateLike)
+    .map(spaceId => occupied[spaceId])
+    .filter(Boolean);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Construction owner                                                         */
+/* -------------------------------------------------------------------------- */
+function getBuiltInstanceById(sideSetup, chipInstanceId){
+  return sideSetup.builtChipInstances.find(instance => instance.chipInstanceId === chipInstanceId) || null;
+}
+function getSpaceForChipInstance(sideSetup, chipInstanceId){
+  for(const [spaceId, placedChipInstanceId] of Object.entries(sideSetup.placedLayoutBySpaceId)){
+    if(placedChipInstanceId === chipInstanceId) return spaceId;
+  }
+  return null;
+}
+function getPlacedEntries(sideSetup){
+  return Object.entries(sideSetup.placedLayoutBySpaceId)
+    .map(([spaceId, chipInstanceId]) => ({ spaceId, chipInstanceId, builtInstance:getBuiltInstanceById(sideSetup, chipInstanceId) }))
+    .filter(entry => entry.builtInstance)
+    .map(entry => Object.assign({}, entry, { chipDef:getChipDef(entry.builtInstance.chipTypeId) }))
+    .filter(entry => entry.chipDef);
+}
+function addBuiltInstanceToSide(sideSetup, chipTypeId){
+  const builtInstance = createBuiltChipInstance(chipTypeId);
+  sideSetup.builtChipInstances.push(builtInstance);
+  return builtInstance;
+}
+function removeChipInstanceFromLayout(sideSetup, chipInstanceId){
+  const currentSpaceId = getSpaceForChipInstance(sideSetup, chipInstanceId);
+  if(currentSpaceId) delete sideSetup.placedLayoutBySpaceId[currentSpaceId];
+}
+function canDropOnSpace(sideSetup, dragPayload, spaceId){
+  const legalSpaces = getLegalSpaceIds(sideSetup.frameId);
+  if(!legalSpaces.has(spaceId)) return false;
+  const occupiedBy = sideSetup.placedLayoutBySpaceId[spaceId] || null;
+  if(!occupiedBy) return true;
+  if(dragPayload && dragPayload.kind === 'placed' && occupiedBy === dragPayload.chipInstanceId) return true;
+  return false;
+}
+function placeChipInstance(sideSetup, chipInstanceId, targetSpaceId){
+  if(!canDropOnSpace(sideSetup, { kind:'placed', chipInstanceId }, targetSpaceId)){
+    return { ok:false, reason:'Target space is occupied or illegal.' };
+  }
+  removeChipInstanceFromLayout(sideSetup, chipInstanceId);
+  sideSetup.placedLayoutBySpaceId[targetSpaceId] = chipInstanceId;
+  return { ok:true };
+}
+function createAndPlaceChipInstance(sideSetup, chipTypeId, targetSpaceId){
+  if(!canDropOnSpace(sideSetup, { kind:'catalog', chipTypeId }, targetSpaceId)){
+    return { ok:false, reason:'Target space is occupied or illegal.' };
+  }
+  const builtInstance = addBuiltInstanceToSide(sideSetup, chipTypeId);
+  sideSetup.placedLayoutBySpaceId[targetSpaceId] = builtInstance.chipInstanceId;
+  return { ok:true, chipInstanceId:builtInstance.chipInstanceId };
+}
+function clearPlacedLayout(sideSetup){
+  sideSetup.placedLayoutBySpaceId = {};
+  sideSetup.isLocked = false;
+}
+function validateSideSetup(sideKey, sideSetup){
+  const setup = sideSetup || getSideSetup(sideKey);
+  const reasons = [];
+  const warnings = [];
+  const frameDef = getFrameDef(setup.frameId);
+  const legalSpaces = getLegalSpaceIds(setup.frameId);
+  const builtIds = new Set();
+  const placedInstanceCounts = {};
+  const placedEntries = Object.entries(setup.placedLayoutBySpaceId);
+  let coreCount = 0;
+
+  if(!frameDef) reasons.push('Missing frame selection.');
+
+  for(const builtInstance of setup.builtChipInstances){
+    if(builtIds.has(builtInstance.chipInstanceId)){
+      reasons.push('Duplicate chip instance id detected: ' + builtInstance.chipInstanceId + '.');
+      continue;
+    }
+    builtIds.add(builtInstance.chipInstanceId);
+    if(!getChipDef(builtInstance.chipTypeId)) reasons.push('Missing chip definition: ' + builtInstance.chipTypeId + '.');
+  }
+
+  for(const [spaceId, chipInstanceId] of placedEntries){
+    if(!legalSpaces.has(spaceId)) reasons.push('Illegal occupied space: ' + spaceId + '.');
+    if(!builtIds.has(chipInstanceId)) reasons.push('Placed layout references missing chip instance: ' + chipInstanceId + '.');
+    placedInstanceCounts[chipInstanceId] = (placedInstanceCounts[chipInstanceId] || 0) + 1;
+    const builtInstance = getBuiltInstanceById(setup, chipInstanceId);
+    const chipDef = builtInstance ? getChipDef(builtInstance.chipTypeId) : null;
+    if(chipDef && chipDef.isCore) coreCount += 1;
+  }
+
+  for(const [chipInstanceId, count] of Object.entries(placedInstanceCounts)){
+    if(count > 1) reasons.push('Chip instance placed in more than one space: ' + chipInstanceId + '.');
+  }
+
+  if(coreCount === 0) reasons.push('Missing Core placement.');
+  if(coreCount > 1) reasons.push('Only 1 placed Core is allowed.');
+  if(sideKey === 'enemy' && !getAiPreset(setup.aiPresetId)) reasons.push('Enemy AI preset is required.');
+  if(setup.builtChipInstances.length > Object.keys(setup.placedLayoutBySpaceId).length) warnings.push('This side has unplaced built instances.');
+
+  return {
+    sideKey,
+    isValid: reasons.length === 0,
+    reasons,
+    warnings,
+    stats: {
+      frameId: setup.frameId,
+      builtCount: setup.builtChipInstances.length,
+      placedCount: Object.keys(setup.placedLayoutBySpaceId).length,
+      coreCount,
+      aiPresetId: setup.aiPresetId,
+      isLocked: setup.isLocked
+    }
+  };
+}
+function validateLaunchScenario(){
+  const playerValidation = validateSideSetup('player');
+  const enemyValidation = validateSideSetup('enemy');
+  const reasons = [];
+  if(!playerValidation.isValid) reasons.push('Player setup is invalid.');
+  if(!enemyValidation.isValid) reasons.push('Enemy setup is invalid.');
+  if(!getSideSetup('player').isLocked) reasons.push('Player side is not locked.');
+  if(!getSideSetup('enemy').isLocked) reasons.push('Enemy side is not locked.');
+  return { isValid: reasons.length === 0, reasons, playerValidation, enemyValidation };
+}
+
+/* -------------------------------------------------------------------------- */
+/* Power owner                                                                */
+/* -------------------------------------------------------------------------- */
+function getPylonCoverageByColor(sideKey, sideStateLike){
+  const coverage = { red:new Set(), blue:new Set(), green:new Set() };
+  const occupied = getOccupancyBySpaceId(sideStateLike);
+  const entries = sideStateLike.placedLayoutBySpaceId ? getPlacedEntries(sideStateLike) : Object.values(sideStateLike.chipsById || {}).filter(chipState => !chipState.isDisabled).map(chipState => ({
+    spaceId:chipState.spaceId,
+    chipInstanceId:chipState.chipInstanceId,
+    chipDef:getChipDef(chipState.chipTypeId)
+  }));
+  for(const entry of entries){
+    if(!entry.chipDef || !entry.chipDef.isPylon) continue;
+    const color = entry.chipDef.pylonColor;
+    for(const spaceId of getAffectedSpaceIdsFromTarget(sideKey, sideStateLike.frameId, entry.spaceId, shapeSpec('Radial', 1))){
+      if(occupied[spaceId]) coverage[color].add(spaceId);
+    }
+  }
+  return coverage;
+}
+function propagateRelayColors(sideKey, sideStateLike, baseCoverage){
+  const occupied = getOccupancyBySpaceId(sideStateLike);
+  const relaySpaceIds = Object.keys(occupied).filter(spaceId => {
+    const chipInstanceId = occupied[spaceId];
+    const chipTypeId = sideStateLike.placedLayoutBySpaceId
+      ? (getBuiltInstanceById(sideStateLike, chipInstanceId) || {}).chipTypeId
+      : ((sideStateLike.chipsById || {})[chipInstanceId] || {}).chipTypeId;
+    return chipTypeId === 'relay';
+  });
+  const colorsBySpaceId = {};
+  for(const [color, spaces] of Object.entries(baseCoverage)){
+    for(const spaceId of spaces){
+      colorsBySpaceId[spaceId] = colorsBySpaceId[spaceId] || new Set();
+      colorsBySpaceId[spaceId].add(color);
+    }
+  }
+  let changed = true;
+  while(changed){
+    changed = false;
+    for(const relaySpaceId of relaySpaceIds){
+      const carried = colorsBySpaceId[relaySpaceId] || new Set();
+      if(!carried.size) continue;
+      for(const spaceId of getAffectedSpaceIdsFromTarget(sideKey, sideStateLike.frameId, relaySpaceId, shapeSpec('Cross', 1))){
+        if(!occupied[spaceId]) continue;
+        colorsBySpaceId[spaceId] = colorsBySpaceId[spaceId] || new Set();
+        for(const color of carried){
+          if(colorsBySpaceId[spaceId].has(color)) continue;
+          colorsBySpaceId[spaceId].add(color);
+          changed = true;
+        }
+      }
+    }
+  }
+  return colorsBySpaceId;
+}
+function getFusionTagFromColors(colors){
+  const sorted = Array.from(colors).sort().join(',');
+  if(sorted === 'blue,green,red') return 'White';
+  if(sorted === 'blue,green') return 'Cyan';
+  if(sorted === 'green,red') return 'Yellow';
+  if(sorted === 'blue,red') return 'Magenta';
+  return null;
+}
+function buildPowerStateForSide(sideKey, sideStateLike){
+  const occupied = getOccupancyBySpaceId(sideStateLike);
+  const baseCoverage = getPylonCoverageByColor(sideKey, sideStateLike);
+  const colorsBySpaceIdMap = propagateRelayColors(sideKey, sideStateLike, baseCoverage);
+  const colorsByChipId = {};
+  const colorsBySpaceId = {};
+  const levelsByChipId = {};
+  const fusionByChipId = {};
+  const modifiedByChipId = {};
+
+  for(const [spaceId, chipInstanceId] of Object.entries(occupied)){
+    const colors = Array.from(colorsBySpaceIdMap[spaceId] || []).sort();
+    const levelValue = colors.length;
+    const levels = {};
+    for(const color of colors) levels[color] = levelValue;
+    colorsBySpaceId[spaceId] = colors;
+    colorsByChipId[chipInstanceId] = colors;
+    levelsByChipId[chipInstanceId] = levels;
+    fusionByChipId[chipInstanceId] = getFusionTagFromColors(colors);
+
+    const chipTypeId = sideStateLike.placedLayoutBySpaceId
+      ? ((getBuiltInstanceById(sideStateLike, chipInstanceId) || {}).chipTypeId)
+      : ((sideStateLike.chipsById || {})[chipInstanceId] || {}).chipTypeId;
+    const chipDef = getChipDef(chipTypeId);
+    modifiedByChipId[chipInstanceId] = getModifiedChipStatsFromLevels(chipDef, levels);
+  }
+
+  return { sideKey, colorsByChipId, colorsBySpaceId, levelsByChipId, fusionByChipId, modifiedByChipId };
+}
+function getPowerColorsForChip(powerState, chipInstanceId){
+  return powerState && powerState.colorsByChipId[chipInstanceId] ? powerState.colorsByChipId[chipInstanceId] : [];
+}
+function getPowerLevelsForChip(powerState, chipInstanceId){
+  return powerState && powerState.levelsByChipId[chipInstanceId] ? powerState.levelsByChipId[chipInstanceId] : {};
+}
+function getFusionTagForChip(powerState, chipInstanceId){
+  return powerState && powerState.fusionByChipId[chipInstanceId] ? powerState.fusionByChipId[chipInstanceId] : null;
+}
+function getModifiedChipStatsFromLevels(chipDef, levels){
+  const redLevel = levels.red || 0;
+  const blueLevel = levels.blue || 0;
+  const greenLevel = levels.green || 0;
+  const baseShape = getChipBattleShapeSpec(chipDef);
+  return {
+    currentMaxHp: chipDef.hp + greenLevel,
+    primaryStatBonus: chipDef.primaryStat === PRIMARY_STATS.NONE ? 0 : redLevel,
+    shapeStepBonus: baseShape ? blueLevel : 0,
+    printedEnergy: chipDef.battle && typeof chipDef.battle.printedEnergy === 'number' ? chipDef.battle.printedEnergy : null,
+    powered: Boolean(redLevel || blueLevel || greenLevel)
+  };
+}
+function getModifiedChipStats(powerState, chipInstanceId, chipDef){
+  if(powerState && powerState.modifiedByChipId[chipInstanceId]) return powerState.modifiedByChipId[chipInstanceId];
+  return getModifiedChipStatsFromLevels(chipDef, {});
+}
+
+
+/* -------------------------------------------------------------------------- */
+/* Battle-test shell owner                                                    */
+/* -------------------------------------------------------------------------- */
+function createBattleUiState(){
+  return {
+    focusedChipId: null,
+    preview: null,
+    chosenChipIds: [],
+    inspectedChipId: null,
+    showLog: false
+  };
+}
+function ensureBattleUiState(){
+  if(!appState.ui.battle) appState.ui.battle = createBattleUiState();
+  return appState.ui.battle;
+}
+function clearBattleUiState(){
+  appState.ui.battle = createBattleUiState();
+}
+function openBattleOverlay(kind, payload){
+  const battleUi = getBattleUiState();
+  battleUi.overlay = { kind, payload:payload || null };
+}
+function closeBattleOverlay(){
+  const battleUi = getBattleUiState();
+  battleUi.overlay = null;
+}
+function setBattlePlaybackReadout(title, lines, sideKey){
+  const battleUi = getBattleUiState();
+  battleUi.playbackReadout = { title, lines:lines || [], sideKey:sideKey || 'enemy' };
+}
+function clearBattlePlaybackReadout(){
+  const battleUi = getBattleUiState();
+  battleUi.playbackReadout = null;
+}
+function getSideLockResult(sideKey){ return validateSideSetup(sideKey); }
+function lockSideSetup(sideKey){
+  const validation = getSideLockResult(sideKey);
+  if(!validation.isValid) return { ok:false, reasons:validation.reasons };
+  getSideSetup(sideKey).isLocked = true;
+  return { ok:true };
+}
+function unlockSideSetup(sideKey){
+  const sideSetup = getSideSetup(sideKey);
+  if(sideSetup.isLocked) sideSetup.isLocked = false;
+  return { ok:true };
+}
+function canLaunchScenario(){ return validateLaunchScenario().isValid; }
+function createLockedSnapshotFromScenario(){
+  return { scenario:deepClone(appState.scenario), lockedAtVersion:APP_VERSION, mode:'battleTest' };
+}
+function restoreScenarioFromLockedSnapshot(snapshot){
+  if(!snapshot || !snapshot.scenario) return { ok:false };
+  appState.scenario = deepClone(snapshot.scenario);
+  resetCombatState();
+  resetAiEvaluationState();
+  appState.mode = APP_MODES.SETUP;
+  clearBattleUiState();
+  return { ok:true };
+}
+function resetSideSetupToScenario(sideKey){
+  if(appState.lockedSnapshot && appState.lockedSnapshot.scenario){
+    const snapshotSide = sideKey === 'player' ? appState.lockedSnapshot.scenario.playerSetup : appState.lockedSnapshot.scenario.enemySetup;
+    setSideSetup(sideKey, deepClone(snapshotSide));
+    return { ok:true, source:'snapshot' };
+  }
+  const defaults = sideKey === 'player'
+    ? createEmptySideSetup({ frameId:'scout', aiPresetId:null })
+    : createEmptySideSetup({ frameId:'scout', aiPresetId:AI_PRESETS[0].id });
+  setSideSetup(sideKey, defaults);
+  return { ok:true, source:'defaults' };
+}
+function launchBattleFromLockedSnapshot(){
+  if(!appState.lockedSnapshot) return { ok:false, reason:'Missing locked snapshot.' };
+  appState.combat = initializeBattleFromLockedSnapshot(appState.lockedSnapshot);
+  appState.aiEvaluation = createInitialAiEvaluationState();
+  appState.mode = APP_MODES.BATTLE;
+  clearBattleUiState();
+  if(appState.combat) prepareNextPlayerRound(appState.combat);
+  return { ok:Boolean(appState.combat), combatState:appState.combat };
+}
+function returnToSetupFromBattle(){
+  if(appState.lockedSnapshot) restoreScenarioFromLockedSnapshot(appState.lockedSnapshot);
+  else{
+    resetCombatState();
+    resetAiEvaluationState();
+    appState.mode = APP_MODES.SETUP;
+    clearBattleUiState();
+  }
+  setActiveSide('player');
+  focusCatalogChip('cannon');
+}
+
+/* -------------------------------------------------------------------------- */
+/* Combat owner                                                               */
+/* -------------------------------------------------------------------------- */
+let nextStatusSequence = 1;
+function getPrintedEnergyForCoreChip(chipDef){
+  return chipDef && chipDef.battle && typeof chipDef.battle.printedEnergy === 'number' ? chipDef.battle.printedEnergy : 0;
+}
+function createCombatChipStateFromSetup(sideKey, sideSetup, chipInstanceId, powerState){
+  const builtInstance = getBuiltInstanceById(sideSetup, chipInstanceId);
+  const chipDef = builtInstance ? getChipDef(builtInstance.chipTypeId) : null;
+  const spaceId = getSpaceForChipInstance(sideSetup, chipInstanceId);
+  const modified = getModifiedChipStats(powerState, chipInstanceId, chipDef);
+  return {
+    chipInstanceId,
+    chipTypeId: builtInstance.chipTypeId,
+    sideKey,
+    spaceId,
+    printedHp: chipDef.hp,
+    hp: modified.currentMaxHp,
+    currentMaxHp: modified.currentMaxHp,
+    shield: 0,
+    statuses: [],
+    counters: { beamCharge:0, siege:0 },
+    powerColors: getPowerColorsForChip(powerState, chipInstanceId),
+    powerLevels: getPowerLevelsForChip(powerState, chipInstanceId),
+    fusionTag: getFusionTagForChip(powerState, chipInstanceId),
+    primaryStatBonus: modified.primaryStatBonus,
+    shapeStepBonus: modified.shapeStepBonus,
+    hasActedThisTurn: false,
+    isDisabled: false,
+    printedEnergy: getPrintedEnergyForCoreChip(chipDef)
+  };
+}
+function createCombatSideStateFromSetup(sideKey, sideSetup, powerState){
+  const chipsById = {};
+  let coreChipInstanceId = null;
+  for(const builtInstance of sideSetup.builtChipInstances){
+    const spaceId = getSpaceForChipInstance(sideSetup, builtInstance.chipInstanceId);
+    if(!spaceId) continue;
+    const chipState = createCombatChipStateFromSetup(sideKey, sideSetup, builtInstance.chipInstanceId, powerState);
+    chipsById[chipState.chipInstanceId] = chipState;
+    const chipDef = getChipDef(chipState.chipTypeId);
+    if(chipDef && chipDef.isCore) coreChipInstanceId = chipState.chipInstanceId;
+  }
+  const coreChipDef = coreChipInstanceId ? getChipDef(chipsById[coreChipInstanceId].chipTypeId) : null;
+  const maxEnergy = getPrintedEnergyForCoreChip(coreChipDef);
+  return {
+    sideKey,
+    frameId: sideSetup.frameId,
+    aiPresetId: sideSetup.aiPresetId,
+    coreChipInstanceId,
+    chipsById,
+    maxEnergy,
+    currentEnergy:0,
+    powerState:powerState,
+    committedPlan:null
+  };
+}
+function initializeBattleFromLockedSnapshot(snapshot){
+  if(!snapshot || !snapshot.scenario) return null;
+  const scenario = deepClone(snapshot.scenario);
+  const playerPowerState = buildPowerStateForSide('player', scenario.playerSetup);
+  const enemyPowerState = buildPowerStateForSide('enemy', scenario.enemySetup);
+  const combatState = {
+    version: APP_VERSION,
+    sourceScenarioId: scenario.scenarioId,
+    roundNumber: 1,
+    turnOwner: 'player',
+    phase: TURN_PHASES.ENEMY_PREVIEW,
+    playerState: createCombatSideStateFromSetup('player', scenario.playerSetup, playerPowerState),
+    enemyState: createCombatSideStateFromSetup('enemy', scenario.enemySetup, enemyPowerState),
+    eventLog: ['Battle initialized from locked snapshot.'],
+    winner: null,
+    isBattleOver: false
+  };
+  recomputeCombatDerivedState(combatState);
+  checkBattleEnd(combatState);
+  return combatState;
+}
+function getFreshCombatStateFromLockedSnapshot(snapshot){ return initializeBattleFromLockedSnapshot(snapshot); }
+function getCombatSideState(combatState, sideKey){ return sideKey === 'player' ? combatState.playerState : combatState.enemyState; }
+function getCombatChipState(combatState, chipInstanceId){
+  return combatState.playerState.chipsById[chipInstanceId] || combatState.enemyState.chipsById[chipInstanceId] || null;
+}
+function getLiveCombatChipStates(combatState, sideKey){
+  return Object.values(getCombatSideState(combatState, sideKey).chipsById).filter(chipState => chipState && !chipState.isDisabled);
+}
+function getStatusEntries(chipState, statusName){
+  return chipState.statuses.filter(entry => entry.name === statusName);
+}
+function getStatusAmount(chipState, statusName){
+  return getStatusEntries(chipState, statusName).reduce((sum, entry) => sum + (entry.amount || 0), 0);
+}
+function hasStatus(chipState, statusName){ return getStatusEntries(chipState, statusName).length > 0; }
+function addStatusEntry(chipState, statusName, amount, meta){
+  const defaults = { expiresOnTurnEndOf:null, appliedBySideKey:null, sequence:nextStatusSequence++ };
+  const payload = Object.assign(defaults, meta || {});
+  const stackable = !['Jammed', 'Overload'].includes(statusName);
+  if(!stackable){
+    chipState.statuses = chipState.statuses.filter(entry => entry.name !== statusName);
+    if(amount > 0) chipState.statuses.push(Object.assign({ name:statusName, amount:amount || 1 }, payload));
+    return;
+  }
+  chipState.statuses.push(Object.assign({ name:statusName, amount:amount || 1 }, payload));
+}
+function removeStatusEntries(chipState, statusName, removeAll){
+  let removed = 0;
+  const next = [];
+  for(const entry of chipState.statuses){
+    if(entry.name !== statusName){ next.push(entry); continue; }
+    if(removeAll || removed === 0){ removed += 1; continue; }
+    next.push(entry);
+  }
+  chipState.statuses = next;
+}
+function removeOldestNegativeStatus(chipState){
+  const negatives = chipState.statuses.filter(entry => ['Fire','Shock','Jammed','Overload','Mark'].includes(entry.name));
+  if(!negatives.length) return null;
+  negatives.sort((a, b) => a.sequence - b.sequence);
+  const target = negatives[0];
+  let removed = false;
+  chipState.statuses = chipState.statuses.filter(entry => {
+    if(removed) return true;
+    if(entry.sequence === target.sequence){ removed = true; return false; }
+    return true;
+  });
+  return target.name;
+}
+function getShieldAmount(chipState){ return getStatusAmount(chipState, 'Shield'); }
+function syncChipDerivedFieldsFromStatuses(chipState){ chipState.shield = getShieldAmount(chipState); }
+function logCombatEvent(combatState, message){
+  combatState.eventLog.unshift(message);
+  if(combatState.eventLog.length > 20) combatState.eventLog = combatState.eventLog.slice(0, 20);
+}
+function recomputeSideDerivedState(combatState, sideKey){
+  const sideState = getCombatSideState(combatState, sideKey);
+  const powerState = buildPowerStateForSide(sideKey, sideState);
+  sideState.powerState = powerState;
+  let maxEnergy = 0;
+  for(const chipState of Object.values(sideState.chipsById)){
+    const chipDef = getChipDef(chipState.chipTypeId);
+    const modified = getModifiedChipStats(powerState, chipState.chipInstanceId, chipDef);
+    chipState.powerColors = getPowerColorsForChip(powerState, chipState.chipInstanceId);
+    chipState.powerLevels = getPowerLevelsForChip(powerState, chipState.chipInstanceId);
+    chipState.fusionTag = getFusionTagForChip(powerState, chipState.chipInstanceId);
+    chipState.primaryStatBonus = modified.primaryStatBonus;
+    chipState.shapeStepBonus = modified.shapeStepBonus;
+    chipState.currentMaxHp = modified.currentMaxHp;
+    if(chipState.hp > chipState.currentMaxHp) chipState.hp = chipState.currentMaxHp;
+    chipState.isDisabled = chipState.hp <= 0;
+    syncChipDerivedFieldsFromStatuses(chipState);
+    if(chipDef && chipDef.isCore && !chipState.isDisabled) maxEnergy = getPrintedEnergyForCoreChip(chipDef);
+  }
+  sideState.maxEnergy = maxEnergy;
+  if(sideState.currentEnergy > sideState.maxEnergy) sideState.currentEnergy = sideState.maxEnergy;
+}
+function recomputeCombatDerivedState(combatState){
+  recomputeSideDerivedState(combatState, 'player');
+  recomputeSideDerivedState(combatState, 'enemy');
+}
+function updateDisablement(combatState){
+  for(const sideKey of ['player', 'enemy']){
+    for(const chipState of Object.values(getCombatSideState(combatState, sideKey).chipsById)) chipState.isDisabled = chipState.hp <= 0;
+  }
+  recomputeCombatDerivedState(combatState);
+  return combatState;
+}
+function beginPlayerTurn(combatState){
+  combatState.turnOwner = 'player';
+  combatState.phase = TURN_PHASES.PLAYER_START;
+  for(const chipState of Object.values(combatState.playerState.chipsById)) chipState.hasActedThisTurn = false;
+  processTurnStartEffects(combatState, 'player');
+  if(combatState.isBattleOver) return combatState;
+  grantTurnStartEnergy(combatState, 'player');
+  resolveAutoStep(combatState, 'player');
+  combatState.phase = TURN_PHASES.PLAYER_ACTION;
+  return combatState;
+}
+function beginEnemyTurn(combatState){
+  combatState.turnOwner = 'enemy';
+  combatState.phase = TURN_PHASES.ENEMY_START;
+  for(const chipState of Object.values(combatState.enemyState.chipsById)) chipState.hasActedThisTurn = false;
+  processTurnStartEffects(combatState, 'enemy');
+  if(combatState.isBattleOver) return combatState;
+  grantTurnStartEnergy(combatState, 'enemy');
+  resolveAutoStep(combatState, 'enemy');
+  combatState.phase = TURN_PHASES.ENEMY_ACTION;
+  return combatState;
+}
+function advanceCombatPhase(combatState){
+  if(combatState.isBattleOver){ combatState.phase = TURN_PHASES.BATTLE_OVER; return combatState; }
+  if(combatState.phase === TURN_PHASES.PLAYER_ACTION) combatState.phase = TURN_PHASES.PLAYER_END;
+  else if(combatState.phase === TURN_PHASES.ENEMY_ACTION) combatState.phase = TURN_PHASES.ENEMY_END;
+  return combatState;
+}
+function checkBattleEnd(combatState){
+  const playerCore = combatState.playerState.coreChipInstanceId ? combatState.playerState.chipsById[combatState.playerState.coreChipInstanceId] : null;
+  const enemyCore = combatState.enemyState.coreChipInstanceId ? combatState.enemyState.chipsById[combatState.enemyState.coreChipInstanceId] : null;
+  if(playerCore && playerCore.isDisabled){
+    combatState.winner = 'enemy';
+    combatState.isBattleOver = true;
+    combatState.phase = TURN_PHASES.BATTLE_OVER;
+  }else if(enemyCore && enemyCore.isDisabled){
+    combatState.winner = 'player';
+    combatState.isBattleOver = true;
+    combatState.phase = TURN_PHASES.BATTLE_OVER;
+  }
+  return combatState;
+}
+function grantTurnStartEnergy(combatState, sideKey){
+  const sideState = getCombatSideState(combatState, sideKey);
+  sideState.currentEnergy = sideState.maxEnergy;
+  logCombatEvent(combatState, getSideLabel(sideKey) + ' gains ' + sideState.currentEnergy + ' Energy.');
+  return combatState;
+}
+function buildSelfTargetAutoAction(combatState, sideKey, actingChipId, chosenChipIds){
+  const legalAction = buildLegalActionObject(combatState, sideKey, actingChipId, actingChipId, chosenChipIds || []);
+  return legalAction;
+}
+function getDeterministicChosenChipIds(combatState, actingSideKey, actingChipId, targetChipId, upTo){
+  const candidates = getChosenCandidateChipIds(combatState, actingSideKey, actingChipId, targetChipId)
+    .map(id => getCombatChipState(combatState, id))
+    .filter(Boolean)
+    .sort((a, b) => {
+      const aMissing = a.currentMaxHp - a.hp;
+      const bMissing = b.currentMaxHp - b.hp;
+      if(bMissing !== aMissing) return bMissing - aMissing;
+      return a.chipInstanceId.localeCompare(b.chipInstanceId);
+    })
+    .map(chipState => chipState.chipInstanceId);
+  if(!upTo) return candidates.length ? [candidates[0]] : [];
+  return candidates.slice(0, Math.min(upTo, candidates.length));
+}
+function processTurnStartEffects(combatState, sideKey){
+  const sideState = getCombatSideState(combatState, sideKey);
+  for(const chipState of Object.values(sideState.chipsById)){
+    if(chipState.isDisabled) continue;
+    const fireAmount = getStatusAmount(chipState, 'Fire');
+    if(fireAmount > 0){
+      chipState.hp = Math.max(0, chipState.hp - fireAmount);
+      removeStatusEntries(chipState, 'Fire', true);
+      if(fireAmount > 1) addStatusEntry(chipState, 'Fire', fireAmount - 1, { appliedBySideKey:getEnemySideKey(sideKey) });
+      logCombatEvent(combatState, getChipDef(chipState.chipTypeId).name + ' takes ' + fireAmount + ' Fire damage.');
+    }
+  }
+  updateDisablement(combatState);
+  if(combatState.isBattleOver) return combatState;
+  for(const chipState of Object.values(sideState.chipsById)){
+    if(chipState.isDisabled) continue;
+    const chipDef = getChipDef(chipState.chipTypeId);
+    if(!chipDef || chipDef.battle.timing !== 'ownerTurnStart') continue;
+    if(chipDef.id === 'booby-trap'){
+      const action = buildSelfTargetAutoAction(combatState, sideKey, chipState.chipInstanceId, []);
+      resolveLegalAction(combatState, action, { suppressEnergySpend:true, suppressLogPrefix:true });
+    }else if(chipDef.id === 'plating'){
+      const chosen = getDeterministicChosenChipIds(combatState, sideKey, chipState.chipInstanceId, chipState.chipInstanceId, 1);
+      const action = buildSelfTargetAutoAction(combatState, sideKey, chipState.chipInstanceId, chosen);
+      resolveLegalAction(combatState, action, { suppressEnergySpend:true, suppressLogPrefix:true });
+    }
+    if(combatState.isBattleOver) break;
+  }
+  return combatState;
+}
+function resolveAutoStep(combatState, sideKey){
+  const sideState = getCombatSideState(combatState, sideKey);
+  for(const chipState of Object.values(sideState.chipsById)){
+    if(chipState.isDisabled) continue;
+    const chipDef = getChipDef(chipState.chipTypeId);
+    if(!chipDef) continue;
+    if(chipDef.id === 'turret'){
+      const legalTargets = getLegalTargetChipIds(combatState, sideKey, chipState.chipInstanceId);
+      if(!legalTargets.length) continue;
+      const targetChipId = legalTargets[Math.floor(Math.random() * legalTargets.length)];
+      const action = buildLegalActionObject(combatState, sideKey, chipState.chipInstanceId, targetChipId, []);
+      resolveLegalAction(combatState, action, { suppressEnergySpend:true, suppressLogPrefix:true });
+    }else if(chipDef.id === 'shield-emitter'){
+      const action = buildSelfTargetAutoAction(combatState, sideKey, chipState.chipInstanceId, []);
+      resolveLegalAction(combatState, action, { suppressEnergySpend:true, suppressLogPrefix:true });
+    }
+    if(combatState.isBattleOver) break;
+  }
+  return combatState;
+}
+function finalizeTurnCleanup(combatState, actingSideKey){
+  const actingSideState = getCombatSideState(combatState, actingSideKey);
+  const opposingSideState = getCombatSideState(combatState, getEnemySideKey(actingSideKey));
+  for(const chipState of Object.values(actingSideState.chipsById)){
+    const chipDef = getChipDef(chipState.chipTypeId);
+    if(chipDef && chipDef.id === 'beam') chipState.counters.beamCharge = chipState.hasActedThisTurn ? chipState.counters.beamCharge + 1 : 0;
+    if(chipDef && chipDef.id === 'siege-gun' && chipState.hasActedThisTurn) chipState.counters.siege = Math.min(2, chipState.counters.siege + 1);
+    removeStatusEntries(chipState, 'Jammed', true);
+  }
+  for(const chipState of Object.values(opposingSideState.chipsById)){
+    const retained = [];
+    for(const entry of chipState.statuses){
+      if(entry.name === 'Shield' && entry.expiresOnTurnEndOf === actingSideKey) continue;
+      if(entry.name === 'Shock' && entry.expiresOnTurnEndOf === actingSideKey){
+        if((entry.amount || 0) > 1) retained.push(Object.assign({}, entry, { amount:entry.amount - 1 }));
+        continue;
+      }
+      retained.push(entry);
+    }
+    chipState.statuses = retained;
+  }
+  for(const sideKey of ['player','enemy']){
+    for(const chipState of Object.values(getCombatSideState(combatState, sideKey).chipsById)){
+      removeStatusEntries(chipState, 'Mark', true);
+      removeStatusEntries(chipState, 'Overload', true);
+    }
+  }
+  actingSideState.currentEnergy = 0;
+  recomputeCombatDerivedState(combatState);
+  checkBattleEnd(combatState);
+}
+function prepareNextPlayerRound(combatState){
+  if(combatState.isBattleOver) return combatState;
+  combatState.phase = TURN_PHASES.ENEMY_PREVIEW;
+  computeCommittedEnemyPlan(combatState);
+  beginPlayerTurn(combatState);
+  return combatState;
+}
+function runEnemyTurnSequence(combatState){
+  if(combatState.isBattleOver) return combatState;
+  beginEnemyTurn(combatState);
+  if(!combatState.isBattleOver) resolveEnemyTurn(combatState, combatState.enemyState.aiPresetId || 'aggressor');
+  finalizeTurnCleanup(combatState, 'enemy');
+  if(!combatState.isBattleOver){
+    combatState.roundNumber += 1;
+    prepareNextPlayerRound(combatState);
+  }
+  return combatState;
+}
+function endPlayerTurnAndAdvance(combatState){
+  if(combatState.isBattleOver) return combatState;
+  finalizeTurnCleanup(combatState, 'player');
+  if(!combatState.isBattleOver) runEnemyTurnSequence(combatState);
+  return combatState;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Action and preview owner                                                   */
+/* -------------------------------------------------------------------------- */
+function getLiveChipIdsForSide(combatState, sideKey){
+  return Object.values(getCombatSideState(combatState, sideKey).chipsById)
+    .filter(chipState => !chipState.isDisabled)
+    .map(chipState => chipState.chipInstanceId);
+}
+function getPowerStateForCombatSide(combatState, sideKey){ return getCombatSideState(combatState, sideKey).powerState; }
+function getChipShapeSpecForCombat(combatState, chipState){
+  const chipDef = getChipDef(chipState.chipTypeId);
+  const baseShape = getChipBattleShapeSpec(chipDef);
+  if(!baseShape) return null;
+  const bonus = chipState.shapeStepBonus || 0;
+  return { family:baseShape.family, size:baseShape.size + bonus };
+}
+function getUsableActiveChipIds(combatState, actingSideKey){
+  const actingSideState = getCombatSideState(combatState, actingSideKey);
+  return Object.values(actingSideState.chipsById)
+    .filter(chipState => {
+      if(chipState.isDisabled) return false;
+      const chipDef = getChipDef(chipState.chipTypeId);
+      if(!chipDef || chipDef.chipClass !== CHIP_CLASSES.ACTIVE) return false;
+      if(chipState.hasActedThisTurn) return false;
+      if(hasStatus(chipState, 'Jammed')) return false;
+      return actingSideState.currentEnergy >= getChipEnergyCost(chipDef);
+    })
+    .map(chipState => chipState.chipInstanceId);
+}
+function getLegalTargetChipIds(combatState, actingSideKey, actingChipId){
+  const actingChipState = getCombatChipState(combatState, actingChipId);
+  if(!actingChipState) return [];
+  const chipDef = getChipDef(actingChipState.chipTypeId);
+  const target = getChipTargetSpec(chipDef);
+  const enemySideState = getCombatSideState(combatState, getEnemySideKey(actingSideKey));
+  if(target.kind === 'self') return [actingChipId];
+  if(target.kind === 'none') return [null];
+  if(target.kind === 'allied-chip') return getLiveChipIdsForSide(combatState, actingSideKey);
+  if(target.kind === 'any-chip') return getLiveChipIdsForSide(combatState, 'player').concat(getLiveChipIdsForSide(combatState, 'enemy'));
+  if(target.kind === 'enemy-frontier' || target.kind === 'enemy-frontier-random') return getDefaultHostileTargetChipIds(actingSideKey, enemySideState);
+  return [];
+}
+function getAffectedSpacesForAction(combatState, actingSideKey, actingChipId, targetChipId){
+  const actingChipState = getCombatChipState(combatState, actingChipId);
+  const targetChipState = targetChipId ? getCombatChipState(combatState, targetChipId) : actingChipState;
+  if(!actingChipState || !targetChipState) return [];
+  const targetSideKey = targetChipState.sideKey;
+  return getAffectedSpaceIdsFromTarget(targetSideKey, getCombatSideState(combatState, targetSideKey).frameId, targetChipState.spaceId, getChipShapeSpecForCombat(combatState, actingChipState));
+}
+function doesChipMatchTargetFilter(combatState, actingSideKey, chipDef, candidateChipState, targetFilter, affectedSpaceId, actingChipState){
+  if(!targetFilter) return true;
+  const candidateDef = getChipDef(candidateChipState.chipTypeId);
+  if(targetFilter === 'allied-affected') return candidateChipState.sideKey === actingSideKey;
+  if(targetFilter === 'allied-attack-affected') return candidateChipState.sideKey === actingSideKey && candidateDef.category === CHIP_CATEGORIES.ATTACK;
+  if(targetFilter === 'orthogonally-adjacent-allied-damaged'){
+    if(candidateChipState.sideKey !== actingSideKey) return false;
+    if(candidateChipState.hp >= candidateChipState.currentMaxHp) return false;
+    const orthogonal = new Set(getAdjacentSpaceIds(actingChipState.spaceId, 'orthogonal'));
+    return orthogonal.has(affectedSpaceId);
+  }
+  return true;
+}
+function getAffectedChipIdsForAction(combatState, actingSideKey, actingChipId, targetChipId){
+  const actingChipState = getCombatChipState(combatState, actingChipId);
+  if(!actingChipState) return [];
+  const chipDef = getChipDef(actingChipState.chipTypeId);
+  const affectedSpaceIds = getAffectedSpacesForAction(combatState, actingSideKey, actingChipId, targetChipId);
+  const targetChipState = targetChipId ? getCombatChipState(combatState, targetChipId) : actingChipState;
+  const affectedSideKey = targetChipState ? targetChipState.sideKey : actingSideKey;
+  const sideState = getCombatSideState(combatState, affectedSideKey);
+  const chipIds = [];
+  for(const chipState of Object.values(sideState.chipsById)){
+    if(chipState.isDisabled || !chipState.spaceId) continue;
+    if(!affectedSpaceIds.includes(chipState.spaceId)) continue;
+    if(!doesChipMatchTargetFilter(combatState, actingSideKey, chipDef, chipState, chipDef.battle.targetFilter, chipState.spaceId, actingChipState)) continue;
+    chipIds.push(chipState.chipInstanceId);
+  }
+  return Array.from(new Set(chipIds));
+}
+function getChosenRequirementForAction(chipDef){ return chipDef.battle.chosen || null; }
+function getChosenCandidateChipIds(combatState, actingSideKey, actingChipId, targetChipId){
+  return getAffectedChipIdsForAction(combatState, actingSideKey, actingChipId, targetChipId);
+}
+function getChosenChipCombinationList(combatState, actingSideKey, actingChipId, targetChipId){
+  const actingChipState = getCombatChipState(combatState, actingChipId);
+  const chipDef = actingChipState ? getChipDef(actingChipState.chipTypeId) : null;
+  const requirement = chipDef ? getChosenRequirementForAction(chipDef) : null;
+  if(!requirement) return [[]];
+  const candidates = getChosenCandidateChipIds(combatState, actingSideKey, actingChipId, targetChipId);
+  const combos = [];
+  function choose(start, picked, targetCount){
+    if(picked.length === targetCount){ combos.push(picked.slice()); return; }
+    for(let index = start; index < candidates.length; index += 1){
+      picked.push(candidates[index]);
+      choose(index + 1, picked, targetCount);
+      picked.pop();
+    }
+  }
+  if(requirement.kind === 'upTo'){
+    const max = Math.min(requirement.count, candidates.length);
+    for(let count = 1; count <= max; count += 1) choose(0, [], count);
+    if(!combos.length) combos.push([]);
+    return combos;
+  }
+  if(requirement.kind === 'exactly'){
+    if(candidates.length < requirement.count) return [];
+    choose(0, [], requirement.count);
+    return combos;
+  }
+  return [[]];
+}
+function isChipCurrentlyPowered(combatState, chipState){ return Boolean((chipState.powerColors || []).length); }
+function getScopeMarkOnHitAmount(combatState, actingChipState){
+  const alliedSideState = getCombatSideState(combatState, actingChipState.sideKey);
+  let markAmount = 0;
+  for(const chipState of Object.values(alliedSideState.chipsById)){
+    if(chipState.isDisabled) continue;
+    const chipDef = getChipDef(chipState.chipTypeId);
+    if(!chipDef || chipDef.id !== 'scope') continue;
+    const affectedIds = getAffectedChipIdsForAction(combatState, actingChipState.sideKey, chipState.chipInstanceId, chipState.chipInstanceId);
+    if(!affectedIds.includes(actingChipState.chipInstanceId)) continue;
+    markAmount = Math.max(markAmount, 1 + (chipState.primaryStatBonus || 0));
+  }
+  return markAmount;
+}
+function getChosenCombinationKey(chosenChipIds){
+  return (chosenChipIds || []).slice().sort().join('|');
+}
+function isLegalActionCurrentlyUsable(combatState, legalAction){
+  if(!legalAction || !legalAction.actingChipId) return false;
+  const actingChipState = getCombatChipState(combatState, legalAction.actingChipId);
+  if(!actingChipState || actingChipState.isDisabled) return false;
+  if(!getUsableActiveChipIds(combatState, actingChipState.sideKey).includes(legalAction.actingChipId)) return false;
+  const legalTargets = getLegalTargetChipIds(combatState, actingChipState.sideKey, legalAction.actingChipId);
+  if(!legalTargets.includes(legalAction.targetChipId)) return false;
+  const allowedChosenKeys = new Set(getChosenChipCombinationList(combatState, actingChipState.sideKey, legalAction.actingChipId, legalAction.targetChipId).map(getChosenCombinationKey));
+  if(allowedChosenKeys.size && !allowedChosenKeys.has(getChosenCombinationKey(legalAction.chosenChipIds || []))) return false;
+  return true;
+}
+function getPowerStateSnapshotBySide(combatState, sideKey){
+  const sideState = getCombatSideState(combatState, sideKey);
+  const out = {};
+  for(const chipState of Object.values(sideState.chipsById)){
+    out[chipState.chipInstanceId] = (chipState.powerColors || []).slice().sort();
+  }
+  return out;
+}
+function computePowerDiff(beforeSnapshot, afterSnapshot){
+  const newlyPoweredChipIds = [];
+  const newlyUnpoweredChipIds = [];
+  let powerChanged = false;
+  const allIds = new Set([...Object.keys(beforeSnapshot), ...Object.keys(afterSnapshot)]);
+  for(const chipId of allIds){
+    const beforeColors = beforeSnapshot[chipId] || [];
+    const afterColors = afterSnapshot[chipId] || [];
+    if(beforeColors.join('|') !== afterColors.join('|')) powerChanged = true;
+    if(!beforeColors.length && afterColors.length) newlyPoweredChipIds.push(chipId);
+    if(beforeColors.length && !afterColors.length) newlyUnpoweredChipIds.push(chipId);
+  }
+  return { powerChanged, newlyPoweredChipIds, newlyUnpoweredChipIds };
+}
+function enrichResolutionFromStateDiff(beforeCombatState, afterCombatState, resolution, actingSideKey){
+  const affectedSideKey = resolution.actionKind === 'hostile' ? getEnemySideKey(actingSideKey) : actingSideKey;
+  const beforeDefenderState = getCombatSideState(beforeCombatState, affectedSideKey);
+  const afterDefenderState = getCombatSideState(afterCombatState, affectedSideKey);
+  const beforeTargets = getDefaultHostileTargetChipIds(actingSideKey, beforeDefenderState);
+  const afterTargets = getDefaultHostileTargetChipIds(actingSideKey, afterDefenderState);
+  resolution.frontierChanged = beforeTargets.slice().sort().join('|') !== afterTargets.slice().sort().join('|');
+  resolution.newlyExposedChipIds = afterTargets.filter(chipId => !beforeTargets.includes(chipId));
+
+  const beforePower = Object.assign({}, getPowerStateSnapshotBySide(beforeCombatState, 'player'), getPowerStateSnapshotBySide(beforeCombatState, 'enemy'));
+  const afterPower = Object.assign({}, getPowerStateSnapshotBySide(afterCombatState, 'player'), getPowerStateSnapshotBySide(afterCombatState, 'enemy'));
+  const powerDiff = computePowerDiff(beforePower, afterPower);
+  resolution.powerChanged = powerDiff.powerChanged;
+  resolution.newlyPoweredChipIds = powerDiff.newlyPoweredChipIds;
+  resolution.newlyUnpoweredChipIds = powerDiff.newlyUnpoweredChipIds;
+
+  const protectedSideKey = resolution.actionKind === 'hostile' ? getEnemySideKey(actingSideKey) : actingSideKey;
+  const coreChipInstanceId = getCombatSideState(afterCombatState, protectedSideKey).coreChipInstanceId;
+  const enemyAgainstProtected = getEnemySideKey(protectedSideKey);
+  resolution.coreStillProtected = coreChipInstanceId
+    ? !getDefaultHostileTargetChipIds(enemyAgainstProtected, getCombatSideState(afterCombatState, protectedSideKey)).includes(coreChipInstanceId)
+    : true;
+  return resolution;
+}
+
+function buildLegalActionObject(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds){
+  const actingChipState = getCombatChipState(combatState, actingChipId);
+  const chipDef = actingChipState ? getChipDef(actingChipState.chipTypeId) : null;
+  const affectedSpaceIds = getAffectedSpacesForAction(combatState, actingSideKey, actingChipId, targetChipId);
+  const affectedChipIds = getAffectedChipIdsForAction(combatState, actingSideKey, actingChipId, targetChipId);
+  return {
+    actingChipId,
+    actionKind: chipDef && chipDef.category === CHIP_CATEGORIES.ATTACK ? 'hostile' : 'alliedSupport',
+    targetChipId,
+    chosenChipIds:(chosenChipIds || []).slice(),
+    affectedSpaceIds,
+    affectedChipIds,
+    hasRandomOutcome: Boolean(chipDef && chipDef.battle.target.kind === 'enemy-frontier-random')
+  };
+}
+function buildProjectedResolution(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds){
+  const legalAction = buildLegalActionObject(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds || []);
+  const beforeCombatState = deepClone(combatState);
+  const simulated = deepClone(combatState);
+  const resolution = resolveLegalAction(simulated, legalAction, { simulate:true, suppressLogs:true });
+  return enrichResolutionFromStateDiff(beforeCombatState, simulated, resolution, actingSideKey);
+}
+function buildTruthfulPreview(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds){
+  const actingChipState = getCombatChipState(combatState, actingChipId);
+  const chipDef = actingChipState ? getChipDef(actingChipState.chipTypeId) : null;
+  const chosenRequirement = chipDef ? getChosenRequirementForAction(chipDef) : null;
+  const projectedResolution = buildProjectedResolution(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds || []);
+  const chosenCandidateChipIds = getChosenCandidateChipIds(combatState, actingSideKey, actingChipId, targetChipId);
+  const selected = chosenChipIds || [];
+  const requiresChosenSelection = Boolean(chosenRequirement && ((chosenRequirement.kind === 'exactly' && selected.length !== chosenRequirement.count) || (chosenRequirement.kind === 'upTo' && selected.length === 0 && chosenCandidateChipIds.length > 0)));
+  return {
+    actingChipId,
+    targetChipId,
+    legalTargetChipIds: getLegalTargetChipIds(combatState, actingSideKey, actingChipId),
+    affectedSpaceIds: projectedResolution.affectedSpaceIds,
+    affectedChipIds: projectedResolution.affectedChipIds,
+    chosenCandidateChipIds,
+    chosenRequirement,
+    requiresChosenSelection,
+    hasRandomOutcome: projectedResolution.hasRandomOutcome,
+    projectedResolution
+  };
+}
+function getOverloadAdjacentChipStates(combatState, targetChipState){
+  return Object.values(getCombatSideState(combatState, targetChipState.sideKey).chipsById)
+    .filter(chipState => !chipState.isDisabled && getAdjacentSpaceIds(targetChipState.spaceId, 'orthogonal').includes(chipState.spaceId));
+}
+function consumeOverloadForAtomicEffect(chipState, resolution){
+  if(!hasStatus(chipState, 'Overload')) return false;
+  removeStatusEntries(chipState, 'Overload', true);
+  resolution.statusRemovals.push({ chipId:chipState.chipInstanceId, statusName:'Overload', amount:1 });
+  return true;
+}
+function maybePropagateOverloadAtomicEffect(combatState, targetChipState, atomicEffect, resolution, options){
+  if(options?.isCopied) return;
+  if(!consumeOverloadForAtomicEffect(targetChipState, resolution)) return;
+  for(const adjacentChipState of getOverloadAdjacentChipStates(combatState, targetChipState)){
+    if(atomicEffect.kind === 'damage'){
+      applyDamagePacket(combatState, {
+        sourceChipId:atomicEffect.sourceChipId,
+        targetChipId:adjacentChipState.chipInstanceId,
+        amount:atomicEffect.amount,
+        ignoresShield:Boolean(atomicEffect.ignoresShield)
+      }, resolution, { isCopied:true, isReturnDamage:Boolean(options?.isReturnDamage) });
+    }else if(atomicEffect.kind === 'shield'){
+      applyShieldToChip(combatState, adjacentChipState, atomicEffect.amount, atomicEffect.actingSideKey, resolution, { isCopied:true });
+    }else if(atomicEffect.kind === 'repair'){
+      applyRepairToChip(combatState, adjacentChipState, atomicEffect.amount, resolution, { isCopied:true });
+    }else if(atomicEffect.kind === 'status'){
+      applyStatusEffectToChip(combatState, adjacentChipState, atomicEffect.statusName, atomicEffect.amount, atomicEffect.actingSideKey, resolution, { isCopied:true });
+    }else if(atomicEffect.kind === 'cleanse'){
+      applyCleanseToChip(combatState, adjacentChipState, atomicEffect.amount, resolution, { isCopied:true });
+    }
+  }
+}
+function applyDamagePacket(combatState, packet, resolution, options){
+  const targetChipState = getCombatChipState(combatState, packet.targetChipId);
+  const sourceChipState = packet.sourceChipId ? getCombatChipState(combatState, packet.sourceChipId) : null;
+  if(!targetChipState || targetChipState.isDisabled) return;
+  let amount = packet.amount;
+  const markAmount = getStatusAmount(targetChipState, 'Mark');
+  if(!options || !options.isReturnDamage){
+    if(markAmount > 0){
+      amount += markAmount;
+      removeStatusEntries(targetChipState, 'Mark', true);
+      resolution.statusRemovals.push({ chipId:targetChipState.chipInstanceId, statusName:'Mark', amount:markAmount });
+    }
+  }
+  let remaining = amount;
+  if(!packet.ignoresShield){
+    const shieldEntries = getStatusEntries(targetChipState, 'Shield');
+    for(const entry of shieldEntries){
+      if(remaining <= 0) break;
+      const absorb = Math.min(remaining, entry.amount || 0);
+      entry.amount -= absorb;
+      remaining -= absorb;
+    }
+    targetChipState.statuses = targetChipState.statuses.filter(entry => !(entry.name === 'Shield' && entry.amount <= 0));
+  }
+  const hpBefore = targetChipState.hp;
+  if(remaining > 0) targetChipState.hp = Math.max(0, targetChipState.hp - remaining);
+  syncChipDerivedFieldsFromStatuses(targetChipState);
+  resolution.damagePackets.push({ sourceChipId:packet.sourceChipId, targetChipId:packet.targetChipId, amount, ignoresShield:Boolean(packet.ignoresShield) });
+  if(hpBefore !== targetChipState.hp) resolution.hpChanges.push({ chipId:targetChipState.chipInstanceId, delta:targetChipState.hp - hpBefore });
+  if(targetChipState.hp <= 0 && !resolution.chipsDisabled.includes(targetChipState.chipInstanceId)) resolution.chipsDisabled.push(targetChipState.chipInstanceId);
+  maybePropagateOverloadAtomicEffect(combatState, targetChipState, {
+    kind:'damage',
+    sourceChipId:packet.sourceChipId,
+    amount:packet.amount,
+    ignoresShield:Boolean(packet.ignoresShield)
+  }, resolution, options);
+  const shockAmount = getStatusAmount(targetChipState, 'Shock');
+  if(shockAmount > 0 && sourceChipState && !options?.isReturnDamage){
+    applyDamagePacket(combatState, { sourceChipId:targetChipState.chipInstanceId, targetChipId:sourceChipState.chipInstanceId, amount:shockAmount, ignoresShield:false }, resolution, { isReturnDamage:true });
+  }
+}
+function applyShieldToChip(combatState, chipState, amount, actingSideKey, resolution, options){
+  if(amount <= 0) return false;
+  addStatusEntry(chipState, 'Shield', amount, { appliedBySideKey:actingSideKey, expiresOnTurnEndOf:getEnemySideKey(chipState.sideKey) });
+  syncChipDerivedFieldsFromStatuses(chipState);
+  resolution.shieldChanges.push({ chipId:chipState.chipInstanceId, delta:amount });
+  maybePropagateOverloadAtomicEffect(combatState, chipState, { kind:'shield', amount, actingSideKey }, resolution, options);
+  return true;
+}
+function applyRepairToChip(combatState, chipState, amount, resolution, options){
+  const hpBefore = chipState.hp;
+  chipState.hp = Math.min(chipState.currentMaxHp, chipState.hp + amount);
+  if(chipState.hp !== hpBefore) resolution.hpChanges.push({ chipId:chipState.chipInstanceId, delta:chipState.hp - hpBefore });
+  maybePropagateOverloadAtomicEffect(combatState, chipState, { kind:'repair', amount }, resolution, options);
+  return true;
+}
+function applyStatusEffectToChip(combatState, chipState, statusName, amount, actingSideKey, resolution, options){
+  if(statusName === 'MarkOnHit') return false;
+  const chipDef = getChipDef(chipState.chipTypeId);
+  if(statusName === 'Jammed' && chipDef && chipDef.isPylon) return false;
+  addStatusEntry(chipState, statusName, amount, { appliedBySideKey:actingSideKey, expiresOnTurnEndOf:statusName === 'Shock' ? getEnemySideKey(chipState.sideKey) : null });
+  syncChipDerivedFieldsFromStatuses(chipState);
+  resolution.statusAdds.push({ chipId:chipState.chipInstanceId, statusName, amount });
+  maybePropagateOverloadAtomicEffect(combatState, chipState, { kind:'status', statusName, amount, actingSideKey }, resolution, options);
+  return true;
+}
+function applyCleanseToChip(combatState, chipState, amount, resolution, options){
+  let removed = 0;
+  for(let index = 0; index < amount; index += 1){
+    const removedName = removeOldestNegativeStatus(chipState);
+    if(!removedName) break;
+    removed += 1;
+    resolution.statusRemovals.push({ chipId:chipState.chipInstanceId, statusName:removedName, amount:1 });
+  }
+  syncChipDerivedFieldsFromStatuses(chipState);
+  maybePropagateOverloadAtomicEffect(combatState, chipState, { kind:'cleanse', amount }, resolution, options);
+  return removed;
+}
+function buildEffectTargets(effect, context){
+  const out = [];
+  if(effect.applyTo === 'target' && context.targetChipState) out.push(context.targetChipState);
+  if(effect.applyTo === 'affected-enemy') out.push(...context.affectedChipStates.filter(chipState => chipState.sideKey !== context.actingSideKey));
+  if(effect.applyTo === 'filtered') out.push(...context.affectedChipStates);
+  if(effect.applyTo === 'chosen') out.push(...context.chosenChipStates);
+  return Array.from(new Set(out));
+}
+function effectConditionPasses(effect, targetChipState, context){
+  if(!effect.condition) return true;
+  if(effect.condition === 'targetIsPowered') return Boolean(targetChipState && isChipCurrentlyPowered(context.combatState, targetChipState));
+  if(effect.condition === 'targetIsDamaged') return Boolean(targetChipState && targetChipState.hp < targetChipState.currentMaxHp);
+  if(effect.condition === 'targetIsFrontier'){
+    if(!targetChipState) return false;
+    const defenderState = getCombatSideState(context.combatState, targetChipState.sideKey);
+    return isFrontierSpace(context.actingSideKey, defenderState, targetChipState.spaceId);
+  }
+  return true;
+}
+function resolveEffectAmount(effect, actingChipState){
+  if(typeof effect.amount === 'number') return effect.amount;
+  const base = typeof effect.amountBase === 'number' ? effect.amountBase : 0;
+  const counterValue = effect.amountCounter ? (actingChipState.counters[effect.amountCounter] || 0) : 0;
+  return base + counterValue + (effect.amountFromPrimaryStat ? (actingChipState.primaryStatBonus || 0) : 0);
+}
+function resolveLegalAction(combatState, legalAction, options){
+  if(!options?.allowIllegalResolution && !isLegalActionCurrentlyUsable(combatState, legalAction)) return buildEmptyResolution(legalAction);
+  const beforeCombatState = options?.simulate ? null : deepClone(combatState);
+  const actingChipState = getCombatChipState(combatState, legalAction.actingChipId);
+  if(!actingChipState || actingChipState.isDisabled) return buildEmptyResolution(legalAction);
+  const chipDef = getChipDef(actingChipState.chipTypeId);
+  const targetChipState = legalAction.targetChipId ? getCombatChipState(combatState, legalAction.targetChipId) : null;
+  const affectedChipStates = (legalAction.affectedChipIds || []).map(id => getCombatChipState(combatState, id)).filter(Boolean);
+  const chosenChipStates = (legalAction.chosenChipIds || []).map(id => getCombatChipState(combatState, id)).filter(Boolean);
+  const resolution = buildEmptyResolution(legalAction);
+  const context = { combatState, actingSideKey:actingChipState.sideKey, actingChipState, targetChipState, affectedChipStates, chosenChipStates };
+  const actingSideState = getCombatSideState(combatState, actingChipState.sideKey);
+  for(const effect of getChipEffectSpec(chipDef)){
+    const targets = buildEffectTargets(effect, context);
+    for(const targetChip of targets){
+      if(!effectConditionPasses(effect, targetChip, context)) continue;
+      const amount = resolveEffectAmount(effect, actingChipState);
+      if(effect.kind === 'damage'){
+        applyDamagePacket(combatState, { sourceChipId:actingChipState.chipInstanceId, targetChipId:targetChip.chipInstanceId, amount, ignoresShield:Boolean(effect.ignoresShield) }, resolution, { isCopied:false });
+        if(chipDef.category === CHIP_CATEGORIES.ATTACK && targetChip.sideKey !== actingChipState.sideKey){
+          const markOnHitAmount = getScopeMarkOnHitAmount(combatState, actingChipState);
+          if(markOnHitAmount > 0) applyStatusEffectToChip(combatState, targetChip, 'Mark', markOnHitAmount, actingChipState.sideKey, resolution);
+        }
+      }else if(effect.kind === 'shield'){
+        applyShieldToChip(combatState, targetChip, amount, actingChipState.sideKey, resolution);
+      }else if(effect.kind === 'repair'){
+        applyRepairToChip(combatState, targetChip, amount, resolution);
+      }else if(effect.kind === 'status'){
+        applyStatusEffectToChip(combatState, targetChip, effect.status, amount, actingChipState.sideKey, resolution);
+      }else if(effect.kind === 'cleanse'){
+        applyCleanseToChip(combatState, targetChip, amount, resolution);
+      }
+    }
+  }
+  if(!options?.suppressEnergySpend){
+    actingSideState.currentEnergy = Math.max(0, actingSideState.currentEnergy - getChipEnergyCost(chipDef));
+    actingChipState.hasActedThisTurn = true;
+  }
+  if(chipDef.id === 'beam' || chipDef.id === 'siege-gun') actingChipState.hasActedThisTurn = true;
+  updateDisablement(combatState);
+  checkBattleEnd(combatState);
+  if(beforeCombatState && !options?.simulate) enrichResolutionFromStateDiff(beforeCombatState, combatState, resolution, actingChipState.sideKey);
+  if(!options?.suppressLogs){
+    const targetName = targetChipState ? getChipDef(targetChipState.chipTypeId).name : 'no target';
+    logCombatEvent(combatState, getChipDef(actingChipState.chipTypeId).name + ' resolves on ' + targetName + '.');
+  }
+  return resolution;
+}
+function buildEmptyResolution(legalAction){
+  return {
+    actingChipId:legalAction.actingChipId,
+    actionKind:legalAction.actionKind,
+    targetChipId:legalAction.targetChipId || null,
+    chosenChipIds:(legalAction.chosenChipIds || []).slice(),
+    affectedSpaceIds:(legalAction.affectedSpaceIds || []).slice(),
+    affectedChipIds:(legalAction.affectedChipIds || []).slice(),
+    hasRandomOutcome:Boolean(legalAction.hasRandomOutcome),
+    requiresChosenSelection:false,
+    damagePackets:[],
+    hpChanges:[],
+    shieldChanges:[],
+    statusAdds:[],
+    statusRemovals:[],
+    chipsDisabled:[],
+    frontierChanged:false,
+    newlyExposedChipIds:[],
+    powerChanged:false,
+    newlyUnpoweredChipIds:[],
+    newlyPoweredChipIds:[],
+    coreStillProtected:true
+  };
+}
+function resolveAction(combatState, legalAction){ return resolveLegalAction(combatState, legalAction, {}); }
+
+/* -------------------------------------------------------------------------- */
+/* AI owner                                                                   */
+/* -------------------------------------------------------------------------- */
+function buildEmptyScoreProfile(){ return Object.fromEntries(AI_SCORE_KEYS.map(key => [key, 0])); }
+function getAiWeights(aiPresetId){ return AI_WEIGHTS[aiPresetId] || AI_WEIGHTS.aggressor; }
+function buildScoreProfile(projectedResolution, combatState, actingSideKey){
+  const profile = buildEmptyScoreProfile();
+  for(const packet of projectedResolution.damagePackets){
+    const targetState = getCombatChipState(combatState, packet.targetChipId);
+    const targetDef = targetState ? getChipDef(targetState.chipTypeId) : null;
+    if(!targetDef) continue;
+    if(targetDef.isCore) profile.projectedCoreDamage = normalizeScore(profile.projectedCoreDamage + packet.amount);
+    if(targetDef.isPylon) profile.projectedPylonDamage = normalizeScore(profile.projectedPylonDamage + packet.amount);
+    if(targetDef.id === 'relay') profile.projectedRelayDamage = normalizeScore(profile.projectedRelayDamage + packet.amount);
+    if(targetDef.category === CHIP_CATEGORIES.ATTACK) profile.projectedAttackChipDamage = normalizeScore(profile.projectedAttackChipDamage + packet.amount);
+    if(targetDef.category === CHIP_CATEGORIES.SUPPORT) profile.projectedSupportChipDamage = normalizeScore(profile.projectedSupportChipDamage + packet.amount);
+  }
+  const disabledTargets = projectedResolution.chipsDisabled.map(id => getCombatChipState(combatState, id)).filter(Boolean).map(chipState => getChipDef(chipState.chipTypeId));
+  if(disabledTargets.some(def => def && def.isCore)) profile.projectedDisablementValue = 3;
+  else if(disabledTargets.some(def => def && (def.isPylon || def.id === 'relay' || def.category === CHIP_CATEGORIES.ATTACK))) profile.projectedDisablementValue = 2;
+  else profile.projectedDisablementValue = normalizeScore(disabledTargets.length);
+  profile.projectedBreachWidening = normalizeScore((projectedResolution.newlyExposedChipIds || []).length + (projectedResolution.frontierChanged ? 1 : 0));
+  profile.projectedPoweredTargetDisruption = normalizeScore((projectedResolution.statusAdds || []).filter(item => item.statusName === 'Jammed').length + (projectedResolution.newlyUnpoweredChipIds || []).length + profile.projectedPylonDamage + profile.projectedRelayDamage);
+  profile.projectedCoreDefenseRemoval = normalizeScore((projectedResolution.coreStillProtected ? 0 : 2) + (projectedResolution.newlyExposedChipIds || []).length);
+  profile.projectedRepairValue = normalizeScore((projectedResolution.hpChanges || []).filter(item => item.delta > 0).reduce((sum, item) => sum + item.delta, 0));
+  profile.projectedShieldValue = normalizeScore((projectedResolution.shieldChanges || []).reduce((sum, item) => sum + Math.max(0, item.delta), 0));
+  profile.projectedPoweredThreatPreservation = normalizeScore((projectedResolution.newlyPoweredChipIds || []).length + profile.projectedRepairValue + profile.projectedShieldValue);
+  profile.projectedCoreDefensePreservation = normalizeScore((projectedResolution.coreStillProtected ? 1 : 0) + profile.projectedRepairValue + profile.projectedShieldValue);
+  return profile;
+}
+function scoreLegalAction(legalAction, weights, combatState, actingSideKey){
+  const scoreProfile = buildScoreProfile(legalAction.projectedResolution, combatState, actingSideKey);
+  let finalWeightedScore = 0;
+  for(const key of AI_SCORE_KEYS) finalWeightedScore += (scoreProfile[key] || 0) * (weights[key] || 0);
+  return Object.assign({}, legalAction, { scoreProfile, finalWeightedScore });
+}
+function getAiTieBreakVector(scoredAction){
+  return [
+    scoredAction.finalWeightedScore,
+    scoredAction.scoreProfile.projectedCoreDamage || 0,
+    scoredAction.scoreProfile.projectedDisablementValue || 0,
+    scoredAction.scoreProfile.projectedCoreDefenseRemoval || 0,
+    scoredAction.scoreProfile.projectedPoweredTargetDisruption || 0,
+    scoredAction.scoreProfile.projectedAttackChipDamage || 0,
+    scoredAction.scoreProfile.projectedBreachWidening || 0,
+    scoredAction.scoreProfile.projectedSupportChipDamage || 0,
+    scoredAction.scoreProfile.projectedRepairValue || 0,
+    scoredAction.scoreProfile.projectedShieldValue || 0
+  ];
+}
+function compareTieBreakVectors(a, b){
+  for(let index = 0; index < Math.max(a.length, b.length); index += 1){
+    const aValue = a[index] || 0;
+    const bValue = b[index] || 0;
+    if(bValue !== aValue) return bValue - aValue;
+  }
+  return 0;
+}
+function compareScoredActions(a, b){
+  const vectorComparison = compareTieBreakVectors(getAiTieBreakVector(a), getAiTieBreakVector(b));
+  if(vectorComparison !== 0) return vectorComparison;
+  return String(a.targetChipId || '').localeCompare(String(b.targetChipId || ''));
+}
+function enumerateLegalActions(combatState, actingSideKey){
+  const actions = [];
+  for(const actingChipId of getUsableActiveChipIds(combatState, actingSideKey)){
+    for(const targetChipId of getLegalTargetChipIds(combatState, actingSideKey, actingChipId)){
+      const combos = getChosenChipCombinationList(combatState, actingSideKey, actingChipId, targetChipId);
+      for(const chosenChipIds of combos.length ? combos : [[]]){
+        const legalAction = buildLegalActionObject(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds);
+        legalAction.projectedResolution = buildProjectedResolution(combatState, actingSideKey, actingChipId, targetChipId, chosenChipIds);
+        actions.push(legalAction);
+      }
+    }
+  }
+  return actions;
+}
+function buildCommittedEnemyPlanStep(scoredAction){
+  if(!scoredAction) return null;
+  return {
+    actingChipId: scoredAction.actingChipId,
+    targetChipId: scoredAction.targetChipId,
+    chosenChipIds: scoredAction.chosenChipIds.slice(),
+    affectedSpaceIds: scoredAction.affectedSpaceIds.slice(),
+    affectedChipIds: scoredAction.affectedChipIds.slice(),
+    actionKind: scoredAction.actionKind,
+    projectedResolution: scoredAction.projectedResolution,
+    scoreProfile: scoredAction.scoreProfile,
+    finalWeightedScore: scoredAction.finalWeightedScore
+  };
+}
+function chooseBestAiAction(combatState, aiPresetId){
+  const actions = enumerateLegalActions(combatState, 'enemy');
+  const weights = getAiWeights(aiPresetId);
+  const scored = actions.map(action => scoreLegalAction(action, weights, combatState, 'enemy'));
+  scored.sort(compareScoredActions);
+  const top = scored[0] || null;
+  if(!top) return null;
+  const topVector = getAiTieBreakVector(top);
+  const exactTies = scored.filter(action => compareTieBreakVectors(getAiTieBreakVector(action), topVector) === 0);
+  return exactTies[Math.floor(Math.random() * exactTies.length)] || top;
+}
+function computeCommittedEnemyPlan(combatState){
+  const plan = chooseBestAiAction(combatState, combatState.enemyState.aiPresetId || 'aggressor');
+  combatState.enemyState.committedPlan = buildCommittedEnemyPlanStep(plan);
+  appState.aiEvaluation = plan ? { legalActionsCount: enumerateLegalActions(combatState, 'enemy').length, committedEnemyPlanOutput:combatState.enemyState.committedPlan } : createInitialAiEvaluationState();
+  return combatState.enemyState.committedPlan;
+}
+function resolveEnemyTurn(combatState, aiPresetId){
+  while(!combatState.isBattleOver){
+    const nextAction = chooseBestAiAction(combatState, aiPresetId);
+    if(!nextAction) break;
+    combatState.enemyState.committedPlan = buildCommittedEnemyPlanStep(nextAction);
+    resolveAction(combatState, nextAction);
+    if(combatState.enemyState.currentEnergy <= 0) break;
+    if(!enumerateLegalActions(combatState, 'enemy').length) break;
+  }
+  combatState.enemyState.committedPlan = null;
+  return combatState;
+}
+
+/* -------------------------------------------------------------------------- */
+/* View-model owner                                                           */
+/* -------------------------------------------------------------------------- */
+function getSetupPowerState(sideKey){ return buildPowerStateForSide(sideKey, getSideSetup(sideKey)); }
+function getFocusedDetailViewModel(){
+  const focused = appState.ui.focused;
+  if(!focused) return null;
+  if(focused.kind === 'catalog'){
+    const chipDef = getChipDef(focused.id);
+    if(!chipDef) return null;
+    const lines = [chipDef.category, chipDef.chipClass, 'HP ' + chipDef.hp, chipDef.primaryStat, chipDef.battle.role, chipDef.battle.shape ? ('Shape ' + chipDef.battle.shape.family + (chipDef.battle.shape.size > 1 ? '(' + chipDef.battle.shape.size + ')' : '')) : 'Shape none', 'Target ' + chipDef.battle.target.kind]
+      .concat(chipDef.isCore ? ['Core • Energy ' + getPrintedEnergyForCoreChip(chipDef)] : [])
+      .concat(chipDef.isPylon ? ['Pylon • ' + chipDef.pylonColor] : []);
+    return { title:chipDef.name, emoji:chipDef.emoji, summary:chipDef.summary, lines, actionHint:isSideEditable(getActiveSideKey()) ? 'Tap a legal space or drag to place a new instance.' : 'Confirm flow is active on this side.' };
+  }
+  if(focused.kind === 'placed'){
+    const sideSetup = getSideSetup(focused.side);
+    const builtInstance = getBuiltInstanceById(sideSetup, focused.id);
+    if(!builtInstance) return null;
+    const chipDef = getChipDef(builtInstance.chipTypeId);
+    const powerState = getSetupPowerState(focused.side);
+    const colors = getPowerColorsForChip(powerState, focused.id);
+    const levels = getPowerLevelsForChip(powerState, focused.id);
+    const fusionTag = getFusionTagForChip(powerState, focused.id);
+    const modified = getModifiedChipStats(powerState, focused.id, chipDef);
+    const spaceId = getSpaceForChipInstance(sideSetup, focused.id);
+    const lines = [chipDef.category, chipDef.chipClass, 'HP ' + chipDef.hp + ' → ' + modified.currentMaxHp, chipDef.primaryStat, spaceId ? 'Space ' + spaceId : 'Unplaced', colors.length ? 'Power ' + colors.join(', ') : 'Unpowered'];
+    if(colors.length) lines.push('Levels ' + Object.entries(levels).map(([color, level]) => color + ' ' + level).join(' • '));
+    if(fusionTag) lines.push('Fusion ' + fusionTag);
+    if(modified.shapeStepBonus) lines.push('Blue shape step +' + modified.shapeStepBonus);
+    if(modified.primaryStatBonus) lines.push('Red primary stat +' + modified.primaryStatBonus);
+    return { title:chipDef.name, emoji:chipDef.emoji, summary:chipDef.summary, lines, actionHint:chipDef.battle.notes.length ? chipDef.battle.notes[0] : 'Battle contracts are prepared internally for the next pass.' };
+  }
+  return null;
+}
+function getBattleUiState(){ return ensureBattleUiState(); }
+function getBattleFocusedChipState(){
+  const battleUi = getBattleUiState();
+  const chipId = battleUi.preview ? battleUi.preview.actingChipId : (battleUi.focusedChipId || battleUi.inspectedChipId);
+  return chipId ? getCombatChipState(appState.combat, chipId) : null;
+}
+function summarizeProjectedResolution(preview){
+  if(!preview) return [];
+  const lines = [];
+  for(const packet of preview.projectedResolution.damagePackets){
+    const target = getCombatChipState(appState.combat, packet.targetChipId);
+    if(!target) continue;
+    lines.push('Damage ' + packet.amount + ' → ' + getChipDef(target.chipTypeId).name + (packet.ignoresShield ? ' (ignore Shield)' : ''));
+  }
+  for(const item of preview.projectedResolution.shieldChanges) lines.push('Shield +' + item.delta + ' → ' + getChipDef(getCombatChipState(appState.combat, item.chipId).chipTypeId).name);
+  for(const item of preview.projectedResolution.hpChanges.filter(item => item.delta > 0)) lines.push('Repair +' + item.delta + ' → ' + getChipDef(getCombatChipState(appState.combat, item.chipId).chipTypeId).name);
+  for(const item of preview.projectedResolution.statusAdds) lines.push(item.statusName + ' +' + item.amount + ' → ' + getChipDef(getCombatChipState(appState.combat, item.chipId).chipTypeId).name);
+  for(const chipId of preview.projectedResolution.chipsDisabled){
+    const chipState = getCombatChipState(appState.combat, chipId);
+    if(chipState) lines.push('Disable → ' + getChipDef(chipState.chipTypeId).name);
+  }
+  if(!lines.length) lines.push('No immediate change.');
+  return lines;
+}
+function summarizeCommittedPlan(plan){
+  if(!plan) return ['No committed threat.'];
+  const actingChipState = getCombatChipState(appState.combat, plan.actingChipId);
+  const targetChipState = plan.targetChipId ? getCombatChipState(appState.combat, plan.targetChipId) : null;
+  const lines = [];
+  if(actingChipState) lines.push('Acting chip: ' + getChipDef(actingChipState.chipTypeId).name);
+  if(targetChipState) lines.push('Target: ' + getChipDef(targetChipState.chipTypeId).name);
+  lines.push(...summarizeProjectedResolution({ projectedResolution:plan.projectedResolution }));
+  return lines;
+}
+function getSetupValidationViewModel(){
+  const validation = validateSideSetup(getActiveSideKey());
+  if(validation.isValid){
+    return getActiveSideSetup().isLocked
+      ? { text:'Locked and ready.', className:'valid' }
+      : { text:'Ready to confirm.', className:'valid' };
+  }
+  return { text:validation.reasons[0] || 'Setup needs attention.', className:'invalid' };
+}
+function buildBattleChipDetailLines(chipState){
+  if(!chipState) return [];
+  const chipDef = getChipDef(chipState.chipTypeId);
+  const lines = [chipDef.summary, 'HP ' + chipState.hp + '/' + chipState.currentMaxHp];
+  if(chipDef.isCore) lines.push('Core Energy ' + chipState.printedEnergy);
+  else if(chipDef.primaryStat !== PRIMARY_STATS.NONE) lines.push(chipDef.primaryStat + ' +' + (chipState.primaryStatBonus || 0));
+  lines.push(chipState.powerColors.length ? 'Power ' + chipState.powerColors.join(', ') : 'Unpowered');
+  const statuses = ['Shield','Fire','Shock','Jammed','Overload','Mark'].map(name => ({ name, amount:getStatusAmount(chipState, name) })).filter(item => item.amount > 0);
+  if(statuses.length) lines.push('Statuses ' + statuses.map(item => item.name + ' ' + item.amount).join(' • '));
+  if(chipState.fusionTag) lines.push('Fusion ' + chipState.fusionTag);
+  return lines;
+}
+function renderSharedFlyoutCard(title, summary, lines, options){
+  options = options || {};
+  const actionButtons = options.actionButtons || '';
+  const utilityButton = options.utilityButton || '';
+  const summaryHtml = summary ? '<div class="small muted">' + summary + '</div>' : '';
+  const linesHtml = (lines && lines.length ? lines.map(line => '<div class="previewLine">' + line + '</div>').join('') : '<div class="small muted">Nothing to show.</div>');
+  return '<div class="flyoutHeader"><div class="flyoutTitleWrap"><h3>' + title + '</h3></div>' + utilityButton + '</div>' + '<div class="previewList">' + summaryHtml + linesHtml + '</div>' + actionButtons;
+}
+function getReadinessDisplayChips(combatState){
+  return Object.values(combatState.playerState.chipsById)
+    .filter(chipState => !chipState.isDisabled && getChipDef(chipState.chipTypeId).chipClass === CHIP_CLASSES.ACTIVE)
+    .sort((a, b) => a.spaceId.localeCompare(b.spaceId));
+}
+function getBattleOverlayViewModel(){
+  const combatState = appState.combat;
+  const battleUi = getBattleUiState();
+  const overlay = battleUi.overlay;
+  if(!overlay) return null;
+  if(overlay.kind === 'battleLog'){
+    return { title:'Battle Log', lines:combatState.eventLog.length ? combatState.eventLog : ['No events yet.'] };
+  }
+  if(overlay.kind === 'enemyPlan'){
+    return { title:'Enemy Plan', lines:summarizeCommittedPlan(combatState.enemyState.committedPlan) };
+  }
+  if(overlay.kind === 'chipDetail'){
+    const chipState = overlay.payload && overlay.payload.chipId ? getCombatChipState(combatState, overlay.payload.chipId) : null;
+    if(!chipState) return null;
+    return { title:getChipDef(chipState.chipTypeId).name, lines:buildBattleChipDetailLines(chipState) };
+  }
+  if(overlay.kind === 'setupDetail'){
+    const detail = getFocusedDetailViewModel();
+    return detail ? { title:detail.emoji + ' ' + detail.title, lines:[detail.summary].concat(detail.lines) } : null;
+  }
+  return null;
+}
+function renderOverlayLayer(){
+  const overlayView = getBattleOverlayViewModel();
+  if(!overlayView) return '';
+  return '<div class="overlayBackdrop" id="overlayBackdrop"><div class="overlayCard" role="dialog" aria-modal="true"><div class="overlayHeader"><h3>' + overlayView.title + '</h3><button id="closeOverlay">Close</button></div><div class="overlayBody">' + overlayView.lines.map(line => '<div class="overlayLine">' + line + '</div>').join('') + '</div><div class="overlayFooter"><button id="overlayDone" class="primary">Done</button></div></div></div>';
+}
+function buildPlaybackReadoutFromAction(combatState, action, ownerLabel){
+  const actingChipState = getCombatChipState(combatState, action.actingChipId);
+  const actingName = actingChipState ? getChipDef(actingChipState.chipTypeId).name : 'Chip';
+  const lines = summarizeProjectedResolution({ projectedResolution:action.projectedResolution });
+  return { title:ownerLabel + ' • ' + actingName, lines };
+}
+function battleInteractionLocked(){
+  return Boolean(getBattleUiState().isPlaybackLocked);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Rendering owner                                                            */
+/* -------------------------------------------------------------------------- */
+function renderChipTile(chipDef, colors, extraClass, attrs){
+  const safeColors = colors || [];
+  const powerClass = safeColors.length === 3 ? 'rgb' : (safeColors[0] || '');
+  return '<div class="chipTile ' + (safeColors.length ? 'powered ' : '') + powerClass + ' ' + (extraClass || '') + '" ' + (attrs || '') + '>' +
+    '<div class="chipName">' + chipDef.name + '</div>' +
+    '<div class="chipEmoji">' + chipDef.emoji + '</div>' +
+    '<div class="chipStats"><span>HP ' + chipDef.hp + '</span><span class="dots">' +
+      '<span class="dot ' + (safeColors.includes('red') ? 'red' : '') + '"></span>' +
+      '<span class="dot ' + (safeColors.includes('blue') ? 'blue' : '') + '"></span>' +
+      '<span class="dot ' + (safeColors.includes('green') ? 'green' : '') + '"></span>' +
+    '</span></div>' +
+  '</div>';
+}
+function renderTopBar(){
+  if(appState.mode === APP_MODES.BATTLE) return renderBattleTopBar();
+  return renderSetupTopBar();
+}
+function renderSetupTopBar(){
+  const activeSideKey = getActiveSideKey();
+  return '<div class="topBar battleTopBar">' +
+    '<div class="topBarLeft">' +
+      '<button id="newScenario">New Scenario</button>' +
+      '<button id="loadScenario">Load Scenario</button>' +
+      '<button id="saveScenario">Save Scenario</button>' +
+      (activeSideKey === 'enemy' ? '<button id="backToPlayer">Back</button>' : '') +
+    '</div>' +
+    '<div class="topBarRight">' +
+      '<button id="confirmBuild" class="primary">' + (activeSideKey === 'player' ? 'Confirm Player Ship' : 'Confirm Enemy Ship') + '</button>' +
+    '</div>' +
+  '</div>';
+}
+function renderBattleTopBar(){
+  const combatState = appState.combat;
+  const readinessChips = getReadinessDisplayChips(combatState);
+  const ticker = combatState.eventLog[0] || 'Battle started.';
+  const phaseLabel = combatState.isBattleOver ? 'Battle Over' : (combatState.turnOwner === 'player' ? 'Player Turn' : 'Enemy Turn');
+  const battleUi = getBattleUiState();
+  const canShowPlan = !combatState.isBattleOver && Boolean(combatState.enemyState.committedPlan);
+  const playbackBadge = battleUi.playbackReadout ? '<span class="battlePlaybackBadge">' + battleUi.playbackReadout.title + '</span>' : '';
+  return '<div class="topBar battleTopBar">' +
+    '<div class="topBarLeft">' +
+      (combatState.isBattleOver ? '<button id="battleRematch">Rematch</button><button id="battleEditScenario">Edit Scenario</button><button id="battleNewScenario">New Scenario</button>' : '') +
+    '</div>' +
+    '<div class="battleHudCenter">' +
+      '<span class="hudPill">Round ' + combatState.roundNumber + '</span>' +
+      '<span class="hudPill">' + phaseLabel + '</span>' +
+      '<span class="hudPill">⚡ ' + combatState.playerState.currentEnergy + '/' + combatState.playerState.maxEnergy + '</span>' +
+      '<span class="readinessStrip">' + readinessChips.slice(0, 5).map(chipState => { const chipDef = getChipDef(chipState.chipTypeId); return '<span class="readinessChip ' + (chipState.hasActedThisTurn ? 'spent' : '') + '">' + chipDef.emoji + '</span>'; }).join('') + (readinessChips.length > 5 ? '<span class="readinessChip">+' + (readinessChips.length - 5) + '</span>' : '') + '</span>' +
+      '<button id="openBattleLog">Log</button>' +
+      (canShowPlan ? '<button id="openEnemyPlan">Plan</button>' : '') +
+      '<span class="hudTicker small muted">' + ticker + '</span>' +
+    '</div>' +
+    '<div class="topBarRight">' +
+      playbackBadge +
+      (!combatState.isBattleOver && combatState.turnOwner === 'player' && !battleInteractionLocked() ? '<button id="endPlayerTurn">End Turn</button>' : '') +
+      (combatState.isBattleOver ? '<span class="battleWinner">' + (combatState.winner === 'player' ? 'Victory' : 'Defeat') + '</span>' : '') +
+    '</div>' +
+  '</div>';
+}
+function renderShipPanel(){
+  const sideKey = getActiveSideKey();
+  const sideSetup = getActiveSideSetup();
+  const frameGrid = getFrameGrid(sideSetup.frameId);
+  const powerState = getSetupPowerState(sideKey);
+  return '<div class="panel shipPanel">' +
+    '<div class="panelHeader">' +
+      '<h2>' + (sideKey === 'player' ? 'Build Player Ship' : 'Build Enemy Ship') + '</h2>' +
+      '<div class="controls">' +
+        '<select id="frameSelect">' +
+          FRAME_DEFINITIONS.map(frameDef => '<option value="' + frameDef.id + '"' + (frameDef.id === sideSetup.frameId ? ' selected' : '') + '>' + frameDef.name.replace(' Frame', '') + '</option>').join('') +
+        '</select>' +
+        (sideKey === 'enemy' ? '<select id="aiSelect">' + AI_PRESETS.map(preset => '<option value="' + preset.id + '"' + (preset.id === sideSetup.aiPresetId ? ' selected' : '') + '>' + preset.name + '</option>').join('') + '</select>' : '') +
+      '</div>' +
+    '</div>' +
+    '<div class="frameGridWrap">' +
+      '<div class="frameGrid" id="frameGrid" style="grid-template-columns:repeat(' + frameGrid.cols + ', var(--piece-size));">' +
+        frameGrid.cells.map(cell => {
+          const placedChipInstanceId = sideSetup.placedLayoutBySpaceId[cell.id] || null;
+          const builtInstance = placedChipInstanceId ? getBuiltInstanceById(sideSetup, placedChipInstanceId) : null;
+          const chipDef = builtInstance ? getChipDef(builtInstance.chipTypeId) : null;
+          const colors = placedChipInstanceId ? getPowerColorsForChip(powerState, placedChipInstanceId) : [];
+          const focused = appState.ui.focused;
+          const isFocusedPlaced = focused && focused.kind === 'placed' && focused.id === placedChipInstanceId && focused.side === sideKey;
+          const canDrop = appState.ui.dragPayload && isSideEditable(sideKey) && canDropOnSpace(sideSetup, appState.ui.dragPayload, cell.id);
+          return '<div class="space ' + (cell.legal ? 'legal ' : '') + (canDrop ? 'drop-eligible ' : '') + (sideSetup.isLocked ? 'lockedSpace ' : '') + '" data-space="' + cell.id + '">' +
+            (cell.legal ? '<div class="coord">' + cell.id + '</div>' : '') +
+            (chipDef ? renderChipTile(chipDef, colors, 'placed ' + (isFocusedPlaced ? 'focusedPlaced ' : ''), 'draggable="' + (!sideSetup.isLocked) + '" data-placed-id="' + placedChipInstanceId + '"') : '') +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+function renderInventoryPanel(){
+  const focusedDetail = getFocusedDetailViewModel();
+  const validationView = getSetupValidationViewModel();
+  return '<div class="panel inventoryPanel">' +
+    '<div class="inventoryHeader"><h2>Chip Catalog</h2><div class="validationNote ' + validationView.className + '">' + validationView.text + '</div></div>' +
+    '<div class="inventoryScroll">' +
+      CHIP_DEFINITIONS.map(chipDef => {
+        const isSelected = appState.ui.selectedCatalogChipTypeId === chipDef.id;
+        const isEditable = isSideEditable(getActiveSideKey());
+        const extraClass = (isSelected ? 'selected ' : '') + (isEditable ? 'clickable draggable ' : 'clickable readonly ');
+        return renderChipTile(chipDef, [], extraClass, 'draggable="' + isEditable + '" data-catalog-id="' + chipDef.id + '"');
+      }).join('') +
+    '</div>' +
+    '<div class="flyout">' + renderSharedFlyoutCard(
+      focusedDetail ? focusedDetail.emoji + ' ' + focusedDetail.title : 'Chip Detail',
+      focusedDetail ? focusedDetail.summary : '',
+      focusedDetail ? focusedDetail.lines.concat([focusedDetail.actionHint]) : ['Focus a chip to view its details here.'],
+      { utilityButton: focusedDetail ? '<button class="flyoutGhostButton" id="openSetupDetail">Expand</button>' : '' }
+    ) + '</div>' +
+  '</div>';
+}
+function renderBattleChipTile(combatState, sideKey, chipState){
+  const chipDef = getChipDef(chipState.chipTypeId);
+  const battleUi = getBattleUiState();
+  const sourceChipId = battleUi.preview ? battleUi.preview.actingChipId : battleUi.focusedChipId;
+  const legalTargets = sourceChipId ? getLegalTargetChipIds(combatState, 'player', sourceChipId) : [];
+  const preview = battleUi.preview;
+  const isReady = sideKey === 'player' && combatState.turnOwner === 'player' && getUsableActiveChipIds(combatState, 'player').includes(chipState.chipInstanceId);
+  const isTargetable = legalTargets.includes(chipState.chipInstanceId);
+  const isPreviewTarget = preview && preview.targetChipId === chipState.chipInstanceId;
+  const isCommittedTarget = combatState.enemyState.committedPlan && combatState.enemyState.committedPlan.targetChipId === chipState.chipInstanceId;
+  const statusEntries = [];
+  for(const statusName of ['Shield','Fire','Shock','Jammed','Overload','Mark']){
+    const amount = getStatusAmount(chipState, statusName);
+    if(amount > 0) statusEntries.push('<span class="statusPill">' + statusName + ' ' + amount + '</span>');
+  }
+  if(chipState.fusionTag) statusEntries.push('<span class="statusPill">' + chipState.fusionTag + '</span>');
+  return '<div class="chipTile placed ' + (chipState.isDisabled ? 'disabled ' : '') + (isReady ? 'ready ' : '') + (isTargetable ? 'targetable ' : '') + (isPreviewTarget ? 'previewTarget ' : '') + (isCommittedTarget ? 'committedTarget ' : '') + ((chipState.powerColors || []).length ? ((chipState.powerColors.length === 3 ? 'powered rgb ' : 'powered ' + chipState.powerColors[0] + ' ')) : '') + '" data-battle-chip="' + chipState.chipInstanceId + '" data-battle-side="' + sideKey + '">' +
+    '<div class="battleChipFace">' +
+      '<div class="chipName">' + chipDef.name + '</div>' +
+      '<div class="chipEmoji">' + chipDef.emoji + '</div>' +
+      '<div class="battleChipStats"><span>HP ' + chipState.hp + '/' + chipState.currentMaxHp + '</span><span>' + (chipDef.isCore ? ('⚡ ' + chipState.printedEnergy) : (chipDef.primaryStat === PRIMARY_STATS.NONE ? '—' : ('+' + (chipState.primaryStatBonus || 0)))) + '</span></div>' +
+      '<div class="statusRow">' + statusEntries.join('') + '</div>' +
+    '</div>' +
+  '</div>';
+}
+function renderBattlePanel(sideKey){
+  const combatState = appState.combat;
+  const sideState = getCombatSideState(combatState, sideKey);
+  const frameGrid = getBattleDisplayGrid(sideKey, sideState.frameId);
+  const battleUi = getBattleUiState();
+  const preview = battleUi.preview;
+  const sourceChipId = preview ? preview.actingChipId : battleUi.focusedChipId;
+  const legalTargets = sourceChipId && combatState.turnOwner === 'player' ? getLegalTargetChipIds(combatState, 'player', sourceChipId) : [];
+  const targetableSpaceIds = new Set(legalTargets.map(id => { const targetChip = getCombatChipState(combatState, id); return targetChip && targetChip.sideKey === sideKey ? targetChip.spaceId : null; }).filter(Boolean));
+  const committedTargetId = combatState.enemyState.committedPlan ? combatState.enemyState.committedPlan.targetChipId : null;
+  const previewTargetChip = preview && preview.targetChipId ? getCombatChipState(combatState, preview.targetChipId) : null;
+  const previewSideKey = previewTargetChip ? previewTargetChip.sideKey : null;
+  const sideChipStates = Object.values(sideState.chipsById);
+  const chipStateBySpaceId = new Map(sideChipStates.map(item => [item.spaceId, item]));
+  return '<div class="battleSide ' + (sideKey === 'player' ? 'player' : 'enemy') + '">' +
+    '<div class="battleShipBoard ' + (sideKey === 'player' ? 'playerFacing' : 'enemyFacing') + '">' +
+      '<div class="frameGrid battleFrameGrid" style="grid-template-columns:repeat(' + frameGrid.cols + ', var(--piece-size));">' +
+        frameGrid.cells.map(cell => {
+          const chipState = chipStateBySpaceId.get(cell.id) || null;
+          const classes = ['space', 'battleSpace'];
+          if(cell.legal) classes.push('legal');
+          if(sourceChipId && targetableSpaceIds.has(cell.id)) classes.push('targetable');
+          if(previewTargetChip && previewTargetChip.sideKey === sideKey && previewTargetChip.spaceId === cell.id) classes.push('previewTarget');
+          if(preview && previewSideKey === sideKey && preview.affectedSpaceIds.includes(cell.id)) classes.push('previewAffected');
+          if(committedTargetId){ const targetChip = getCombatChipState(combatState, committedTargetId); if(targetChip && targetChip.sideKey === sideKey && targetChip.spaceId === cell.id) classes.push('committedTarget'); }
+          return '<div class="' + classes.join(' ') + '" data-battle-space="' + cell.id + '" data-battle-side="' + sideKey + '">' +
+            (chipState ? renderBattleChipTile(combatState, sideKey, chipState) : '') +
+          '</div>';
+        }).join('') +
+      '</div>' +
+    '</div>' +
+  '</div>';
+}
+function renderBattleFlyout(sideKey){
+  const combatState = appState.combat;
+  const battleUi = getBattleUiState();
+  let chipState = null;
+  let title = '';
+  let summary = '';
+  let lines = [];
+  let actions = '';
+  let utilityButton = '';
+  let visible = false;
+
+  if(sideKey === 'player' && battleUi.preview){
+    chipState = getCombatChipState(combatState, battleUi.preview.actingChipId);
+    title = 'Preview • ' + getChipDef(chipState.chipTypeId).name;
+    summary = 'Predicted immediate outcome';
+    lines = summarizeProjectedResolution(battleUi.preview);
+    actions = '<div class="flyoutActions"><button id="cancelPreview">Cancel</button>' + (battleUi.preview.requiresChosenSelection ? '' : '<button id="confirmAction" class="primary">Confirm</button>') + '</div>';
+    if(battleUi.preview.requiresChosenSelection) lines.unshift('Choose required chip targets before confirming.');
+    visible = true;
+  }else{
+    const inspectedChipId = sideKey === 'player' ? battleUi.focusedChipId : battleUi.inspectedChipId;
+    chipState = inspectedChipId ? getCombatChipState(combatState, inspectedChipId) : null;
+    if(chipState && chipState.sideKey !== sideKey) chipState = null;
+    if(chipState){
+      const chipDef = getChipDef(chipState.chipTypeId);
+      title = chipDef.name;
+      summary = chipDef.summary;
+      lines = buildBattleChipDetailLines(chipState);
+      if(sideKey === 'enemy' && combatState.enemyState.committedPlan && combatState.enemyState.committedPlan.actingChipId === chipState.chipInstanceId){
+        lines = summarizeCommittedPlan(combatState.enemyState.committedPlan).concat(lines);
+      }
+      utilityButton = '<button class="flyoutGhostButton" data-overlay-open="chipDetail" data-chip-id="' + chipState.chipInstanceId + '">Expand</button>';
+      visible = true;
+    }
+  }
+
+  if(!visible && battleUi.playbackReadout && battleUi.playbackReadout.sideKey === sideKey){
+    title = battleUi.playbackReadout.title;
+    summary = 'Playback';
+    lines = battleUi.playbackReadout.lines;
+    visible = true;
+  }
+
+  if(!visible) return '';
+  return '<div class="battleOverlayFlyout ' + (sideKey === 'player' ? 'playerFlyout' : 'enemyFlyout') + '"><div class="battleFlyout">' + renderSharedFlyoutCard(title, summary, lines, { actionButtons:actions, utilityButton:utilityButton }) + '</div></div>';
+}
+function renderBattleMain(){
+  return '<div class="battleScene" id="battleScene"><div class="battleField">' + renderBattlePanel('player') + renderBattlePanel('enemy') + '</div>' + renderBattleFlyout('player') + renderBattleFlyout('enemy') + '</div>';
+}
+function renderApp(){
+  const overlayHtml = getBattleOverlayViewModel() ? renderOverlayLayer() : '';
+  document.getElementById('app').innerHTML = appState.mode === APP_MODES.BATTLE
+    ? '<div class="app">' + renderTopBar() + renderBattleMain() + overlayHtml + '</div>'
+    : '<div class="app">' + renderTopBar() + '<div class="main">' + renderShipPanel() + renderInventoryPanel() + '</div>' + overlayHtml + '</div>';
+  attachHandlers();
+  requestAnimationFrame(solvePieceSize);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Layout sizing                                                              */
+/* -------------------------------------------------------------------------- */
+function solvePieceSize(){
+  const root = document.documentElement;
+  const shipPanel = appState.mode === APP_MODES.BATTLE ? document.querySelector('.battleShipBoard.playerFacing') : document.querySelector('.shipPanel');
+  if(!shipPanel) return;
+  let gridCols;
+  let gridRows;
+  if(appState.mode === APP_MODES.BATTLE){
+    const playerDims = getBattleDisplayDimensions(getCombatSideState(appState.combat, 'player').frameId);
+    const enemyDims = getBattleDisplayDimensions(getCombatSideState(appState.combat, 'enemy').frameId);
+    gridCols = Math.max(playerDims.cols, enemyDims.cols);
+    gridRows = Math.max(playerDims.rows, enemyDims.rows);
+  }else{
+    const activeFrame = getFrameDef(getActiveSideSetup().frameId);
+    if(!activeFrame) return;
+    gridCols = activeFrame.cols;
+    gridRows = activeFrame.rows;
+  }
+  const shipRect = shipPanel.getBoundingClientRect();
+  const panelPad = 10;
+  const headerHeight = appState.mode === APP_MODES.BATTLE ? 12 : 60;
+  const boardPad = 20;
+  const availWidth = Math.max(120, shipRect.width - panelPad * 2 - boardPad);
+  const availHeight = Math.max(120, shipRect.height - headerHeight - panelPad * 2 - boardPad);
+  const gap = 6;
+  const widthFit = Math.floor((availWidth - gap * (gridCols - 1)) / gridCols);
+  const heightFit = Math.floor((availHeight - gap * (gridRows - 1)) / gridRows);
+  const desktop = window.innerWidth > 820;
+  const minTouch = desktop ? 50 : 44;
+  const maxSize = desktop ? 112 : 82;
+  const solved = Math.max(minTouch, Math.min(maxSize, widthFit, heightFit));
+  const flyoutHeight = desktop ? Math.min(180, Math.max(148, Math.round(solved * 2.05))) : 148;
+  const panelPadding = desktop ? (solved >= 84 ? 14 : 10) : 10;
+  root.style.setProperty('--piece-size', solved + 'px');
+  root.style.setProperty('--gap-size', (solved >= 84 ? 10 : 6) + 'px');
+  root.style.setProperty('--panel-pad', panelPadding + 'px');
+  root.style.setProperty('--flyout-h', flyoutHeight + 'px');
+}
+
+/* -------------------------------------------------------------------------- */
+/* Event wiring                                                               */
+/* -------------------------------------------------------------------------- */
+
+function handleNewScenario(){
+  const proceed = appState.mode === APP_MODES.BATTLE ? window.confirm('Discard the current battle and start a new scenario?') : true;
+  if(!proceed) return;
+  startNewScenario();
+  renderApp();
+}
+function handleSaveScenario(){
+  const nextName = window.prompt('Scenario name', appState.scenario.name || ('Battle Test ' + APP_VERSION));
+  if(nextName === null) return;
+  const trimmed = nextName.trim();
+  if(!trimmed){
+    alert('Scenario name is required.');
+    return;
+  }
+  const existing = loadStoredScenarioCollection();
+  if(!existing.ok){
+    alert(existing.reason);
+    return;
+  }
+  const willReplace = existing.collection.scenarios.some(entry => entry && entry.name === trimmed);
+  if(willReplace && !window.confirm('Overwrite saved scenario "' + trimmed + '"?')) return;
+  appState.scenario.name = trimmed;
+  const result = saveScenarioToStorage(appState.scenario);
+  if(!result.ok){
+    alert(result.reason || 'Scenario could not be saved.');
+    return;
+  }
+  alert('Saved scenario "' + trimmed + '".');
+  renderApp();
+}
+function handleLoadScenario(){
+  const loadResult = loadStoredScenarioCollection();
+  if(!loadResult.ok){
+    alert(loadResult.reason);
+    return;
+  }
+  const savedScenarios = loadResult.collection.scenarios;
+  if(!savedScenarios.length){
+    alert('No saved scenarios found.');
+    return;
+  }
+  const promptLines = ['Load scenario:'];
+  savedScenarios.forEach((entry, index) => { promptLines.push((index + 1) + '. ' + entry.name); });
+  const response = window.prompt(promptLines.join('\n'), '1');
+  if(response === null) return;
+  const trimmed = response.trim();
+  if(!trimmed){
+    alert('Load cancelled.');
+    return;
+  }
+  let selected = null;
+  const index = Number(trimmed);
+  if(Number.isInteger(index) && index >= 1 && index <= savedScenarios.length) selected = savedScenarios[index - 1];
+  if(!selected) selected = savedScenarios.find(entry => entry && entry.name === trimmed) || null;
+  if(!selected){
+    alert('Saved scenario not found.');
+    return;
+  }
+  const loadScenarioResult = loadScenarioIntoSetup(selected);
+  if(!loadScenarioResult.ok){
+    alert(loadScenarioResult.reason || 'Saved scenario is incompatible with the current implementation.');
+    return;
+  }
+  const invalidReasons = loadScenarioResult.validations.filter(item => !item.isValid).flatMap(item => item.reasons);
+  if(invalidReasons.length) alert('Loaded scenario with validation issues:\n' + invalidReasons.join('\n'));
+  renderApp();
+}
+function handleBattleRematch(){
+  if(!appState.lockedSnapshot){
+    alert('Missing locked scenario snapshot.');
+    return;
+  }
+  launchBattleFromLockedSnapshot();
+  renderApp();
+}
+function handleBattleEditScenario(){
+  returnToSetupFromBattle();
+  renderApp();
+}
+function handleBattleNewScenario(){
+  if(!window.confirm('Discard the locked scenario and start a new scenario?')) return;
+  startNewScenario();
+  renderApp();
+}
+function handlePlayerConfirm(){
+  const result = lockSideSetup('player');
+  if(!result.ok){ alert(result.reasons[0] || 'Player ship is not ready yet.'); return; }
+  setActiveSide('enemy');
+  focusCatalogChip('cannon');
+  renderApp();
+}
+function handleEnemyConfirm(){
+  const enemyResult = lockSideSetup('enemy');
+  if(!enemyResult.ok){ alert(enemyResult.reasons[0] || 'Enemy ship is not ready yet.'); return; }
+  if(!canLaunchScenario()){ alert('Confirm the player ship first.'); return; }
+  appState.lockedSnapshot = createLockedSnapshotFromScenario();
+  launchBattleFromLockedSnapshot();
+  renderApp();
+}
+function handleBattleChipInteraction(chipId){
+  if(battleInteractionLocked()) return;
+  const combatState = appState.combat;
+  const battleUi = getBattleUiState();
+  const clickedChipState = getCombatChipState(combatState, chipId);
+  if(!clickedChipState) return;
+  if(combatState.isBattleOver){
+    battleUi.inspectedChipId = chipId;
+    renderApp();
+    return;
+  }
+  if(combatState.turnOwner !== 'player'){
+    battleUi.inspectedChipId = chipId;
+    renderApp();
+    return;
+  }
+  const sourceChipId = battleUi.preview ? battleUi.preview.actingChipId : battleUi.focusedChipId;
+  if(battleUi.preview){
+    const preview = battleUi.preview;
+    if(preview.chosenCandidateChipIds.includes(chipId)){
+      const requirement = preview.chosenRequirement;
+      const current = new Set(battleUi.chosenChipIds);
+      if(current.has(chipId)) current.delete(chipId);
+      else{
+        if(requirement && requirement.kind === 'exactly' && current.size >= requirement.count) current.clear();
+        if(requirement && requirement.kind === 'upTo' && current.size >= requirement.count){
+          const first = Array.from(current)[0];
+          current.delete(first);
+        }
+        current.add(chipId);
+      }
+      battleUi.chosenChipIds = Array.from(current);
+      battleUi.preview = buildTruthfulPreview(combatState, 'player', preview.actingChipId, preview.targetChipId, battleUi.chosenChipIds);
+      renderApp();
+      return;
+    }
+    if(sourceChipId && preview.legalTargetChipIds.includes(chipId)){
+      battleUi.chosenChipIds = [];
+      battleUi.preview = buildTruthfulPreview(combatState, 'player', sourceChipId, chipId, []);
+      renderApp();
+      return;
+    }
+  }
+  const usable = getUsableActiveChipIds(combatState, 'player');
+  if(clickedChipState.sideKey === 'player' && usable.includes(chipId)){
+    battleUi.focusedChipId = chipId;
+    battleUi.preview = null;
+    battleUi.chosenChipIds = [];
+    battleUi.inspectedChipId = chipId;
+    renderApp();
+    return;
+  }
+  if(sourceChipId && getLegalTargetChipIds(combatState, 'player', sourceChipId).includes(chipId)){
+    battleUi.preview = buildTruthfulPreview(combatState, 'player', sourceChipId, chipId, []);
+    battleUi.chosenChipIds = [];
+    battleUi.inspectedChipId = chipId;
+    renderApp();
+    return;
+  }
+  battleUi.inspectedChipId = chipId;
+  renderApp();
+}
+function finalizePlaybackTurnCycle(combatState){
+  finalizeTurnCleanup(combatState, 'enemy');
+  if(!combatState.isBattleOver){
+    combatState.roundNumber += 1;
+    prepareNextPlayerRound(combatState);
+  }
+  const battleUi = getBattleUiState();
+  battleUi.isPlaybackLocked = false;
+  clearBattlePlaybackReadout();
+}
+function playEnemyTurnSequenceAsync(combatState){
+  const battleUi = getBattleUiState();
+  battleUi.isPlaybackLocked = true;
+  beginEnemyTurn(combatState);
+  renderApp();
+  const step = () => {
+    if(combatState.isBattleOver){
+      finalizePlaybackTurnCycle(combatState);
+      renderApp();
+      return;
+    }
+    const nextAction = chooseBestAiAction(combatState, combatState.enemyState.aiPresetId || 'aggressor');
+    if(!nextAction){
+      combatState.enemyState.committedPlan = null;
+      finalizePlaybackTurnCycle(combatState);
+      renderApp();
+      return;
+    }
+    combatState.enemyState.committedPlan = buildCommittedEnemyPlanStep(nextAction);
+    const playback = buildPlaybackReadoutFromAction(combatState, nextAction, 'Enemy action');
+    setBattlePlaybackReadout(playback.title, playback.lines, 'enemy');
+    renderApp();
+    window.setTimeout(() => {
+      resolveAction(combatState, nextAction);
+      renderApp();
+      if(combatState.isBattleOver || combatState.enemyState.currentEnergy <= 0 || !enumerateLegalActions(combatState, 'enemy').length){
+        combatState.enemyState.committedPlan = null;
+        window.setTimeout(() => { finalizePlaybackTurnCycle(combatState); renderApp(); }, 220);
+        return;
+      }
+      window.setTimeout(step, 220);
+    }, 220);
+  };
+  window.setTimeout(step, 180);
+}
+function endPlayerTurnWithPlayback(combatState){
+  if(combatState.isBattleOver) return combatState;
+  finalizeTurnCleanup(combatState, 'player');
+  if(!combatState.isBattleOver) playEnemyTurnSequenceAsync(combatState);
+  return combatState;
+}
+function handleConfirmAction(){
+  const combatState = appState.combat;
+  const battleUi = getBattleUiState();
+  if(!battleUi.preview || battleUi.preview.requiresChosenSelection || battleInteractionLocked()) return;
+  const legalAction = buildLegalActionObject(combatState, 'player', battleUi.preview.actingChipId, battleUi.preview.targetChipId, battleUi.chosenChipIds);
+  resolveAction(combatState, legalAction);
+  clearBattleUiState();
+  if(!combatState.isBattleOver) computeCommittedEnemyPlan(combatState);
+  renderApp();
+}
+function attachSetupHandlers(){
+  const activeSideKey = getActiveSideKey();
+  const activeSideSetup = getActiveSideSetup();
+  const closeOverlayButton = document.getElementById('closeOverlay');
+  if(closeOverlayButton) closeOverlayButton.addEventListener('click', () => { closeBattleOverlay(); renderApp(); });
+  const overlayDoneButton = document.getElementById('overlayDone');
+  if(overlayDoneButton) overlayDoneButton.addEventListener('click', () => { closeBattleOverlay(); renderApp(); });
+  const overlayBackdrop = document.getElementById('overlayBackdrop');
+  if(overlayBackdrop) overlayBackdrop.addEventListener('click', event => { if(event.target === overlayBackdrop){ closeBattleOverlay(); renderApp(); } });
+  const setupDetailButton = document.getElementById('openSetupDetail');
+  if(setupDetailButton) setupDetailButton.addEventListener('click', () => { openBattleOverlay('setupDetail'); renderApp(); });
+  const newScenarioButton = document.getElementById('newScenario');
+  if(newScenarioButton) newScenarioButton.addEventListener('click', handleNewScenario);
+  const saveScenarioButton = document.getElementById('saveScenario');
+  if(saveScenarioButton) saveScenarioButton.addEventListener('click', handleSaveScenario);
+  const loadScenarioButton = document.getElementById('loadScenario');
+  if(loadScenarioButton) loadScenarioButton.addEventListener('click', handleLoadScenario);
+  const frameSelect = document.getElementById('frameSelect');
+  if(frameSelect){
+    frameSelect.addEventListener('change', event => {
+      const sideSetup = getActiveSideSetup();
+      sideSetup.frameId = event.target.value;
+      sideSetup.builtChipInstances = [];
+      clearPlacedLayout(sideSetup);
+      clearSelection();
+      renderApp();
+    });
+  }
+  const aiSelect = document.getElementById('aiSelect');
+  if(aiSelect){
+    aiSelect.addEventListener('change', event => {
+      getSideSetup('enemy').aiPresetId = event.target.value;
+      if(getSideSetup('enemy').isLocked) unlockSideSetup('enemy');
+      renderApp();
+    });
+  }
+  const backButton = document.getElementById('backToPlayer');
+  if(backButton) backButton.addEventListener('click', () => { unlockSideSetup('player'); setActiveSide('player'); focusCatalogChip('cannon'); renderApp(); });
+  const confirmButton = document.getElementById('confirmBuild');
+  if(confirmButton) confirmButton.addEventListener('click', () => { if(activeSideKey === 'player') handlePlayerConfirm(); else handleEnemyConfirm(); });
+  document.querySelectorAll('[data-catalog-id]').forEach(tile => {
+    const chipTypeId = tile.dataset.catalogId;
+    tile.addEventListener('click', () => { focusCatalogChip(chipTypeId); if(isSideEditable(activeSideKey)) appState.ui.selectedCatalogChipTypeId = chipTypeId; renderApp(); });
+    tile.addEventListener('dragstart', event => { if(!isSideEditable(activeSideKey)){ event.preventDefault(); return; } appState.ui.dragPayload = { kind:'catalog', chipTypeId }; focusCatalogChip(chipTypeId); });
+    tile.addEventListener('dragend', () => { clearDrag(); renderApp(); });
+  });
+  document.querySelectorAll('[data-space]').forEach(spaceEl => {
+    const spaceId = spaceEl.dataset.space;
+    const legalSpaces = getLegalSpaceIds(activeSideSetup.frameId);
+    if(!legalSpaces.has(spaceId)) return;
+    spaceEl.addEventListener('dragover', event => {
+      if(!isSideEditable(activeSideKey) || !appState.ui.dragPayload) return;
+      if(!canDropOnSpace(activeSideSetup, appState.ui.dragPayload, spaceId)) return;
+      event.preventDefault();
+      spaceEl.classList.add('drop-target');
+    });
+    spaceEl.addEventListener('dragleave', () => spaceEl.classList.remove('drop-target'));
+    spaceEl.addEventListener('drop', event => {
+      event.preventDefault();
+      spaceEl.classList.remove('drop-target');
+      if(!isSideEditable(activeSideKey) || !appState.ui.dragPayload) return;
+      let result = null;
+      if(appState.ui.dragPayload.kind === 'catalog'){
+        result = createAndPlaceChipInstance(activeSideSetup, appState.ui.dragPayload.chipTypeId, spaceId);
+        if(result.ok){ focusPlacedChip(activeSideKey, result.chipInstanceId); clearSelection(); }
+      }else if(appState.ui.dragPayload.kind === 'placed'){
+        result = placeChipInstance(activeSideSetup, appState.ui.dragPayload.chipInstanceId, spaceId);
+        if(result.ok) focusPlacedChip(activeSideKey, appState.ui.dragPayload.chipInstanceId);
+      }
+      clearDrag(); renderApp();
+    });
+    spaceEl.addEventListener('click', () => {
+      const occupiedChipInstanceId = activeSideSetup.placedLayoutBySpaceId[spaceId] || null;
+      if(occupiedChipInstanceId){ focusPlacedChip(activeSideKey, occupiedChipInstanceId); renderApp(); return; }
+      if(!isSideEditable(activeSideKey) || !appState.ui.selectedCatalogChipTypeId) return;
+      const result = createAndPlaceChipInstance(activeSideSetup, appState.ui.selectedCatalogChipTypeId, spaceId);
+      if(result.ok){ focusPlacedChip(activeSideKey, result.chipInstanceId); clearSelection(); }
+      renderApp();
+    });
+  });
+  document.querySelectorAll('[data-placed-id]').forEach(tile => {
+    const chipInstanceId = tile.dataset.placedId;
+    tile.addEventListener('click', event => { event.stopPropagation(); focusPlacedChip(activeSideKey, chipInstanceId); renderApp(); });
+    tile.addEventListener('dragstart', event => { if(!isSideEditable(activeSideKey)){ event.preventDefault(); return; } appState.ui.dragPayload = { kind:'placed', chipInstanceId }; focusPlacedChip(activeSideKey, chipInstanceId); tile.classList.add('dragging'); });
+    tile.addEventListener('dragend', () => { clearDrag(); renderApp(); });
+  });
+}
+function attachBattleHandlers(){
+  const rematchButton = document.getElementById('battleRematch');
+  if(rematchButton) rematchButton.addEventListener('click', handleBattleRematch);
+  const editButton = document.getElementById('battleEditScenario');
+  if(editButton) editButton.addEventListener('click', handleBattleEditScenario);
+  const newButton = document.getElementById('battleNewScenario');
+  if(newButton) newButton.addEventListener('click', handleBattleNewScenario);
+  const logButton = document.getElementById('openBattleLog');
+  if(logButton) logButton.addEventListener('click', () => { openBattleOverlay('battleLog'); renderApp(); });
+  const planButton = document.getElementById('openEnemyPlan');
+  if(planButton) planButton.addEventListener('click', () => { openBattleOverlay('enemyPlan'); renderApp(); });
+  const endButton = document.getElementById('endPlayerTurn');
+  if(endButton) endButton.addEventListener('click', () => { if(battleInteractionLocked()) return; clearBattleUiState(); endPlayerTurnWithPlayback(appState.combat); renderApp(); });
+  const cancelButton = document.getElementById('cancelPreview');
+  if(cancelButton) cancelButton.addEventListener('click', () => { const battleUi = getBattleUiState(); battleUi.preview = null; battleUi.chosenChipIds = []; renderApp(); });
+  const confirmButton = document.getElementById('confirmAction');
+  if(confirmButton) confirmButton.addEventListener('click', handleConfirmAction);
+  const closeOverlayButton = document.getElementById('closeOverlay');
+  if(closeOverlayButton) closeOverlayButton.addEventListener('click', () => { closeBattleOverlay(); renderApp(); });
+  const overlayDoneButton = document.getElementById('overlayDone');
+  if(overlayDoneButton) overlayDoneButton.addEventListener('click', () => { closeBattleOverlay(); renderApp(); });
+  const setupDetailButton = document.getElementById('openSetupDetail');
+  if(setupDetailButton) setupDetailButton.addEventListener('click', () => { openBattleOverlay('setupDetail'); renderApp(); });
+  const overlayBackdrop = document.getElementById('overlayBackdrop');
+  if(overlayBackdrop) overlayBackdrop.addEventListener('click', event => { if(event.target === overlayBackdrop){ closeBattleOverlay(); renderApp(); } });
+  document.querySelectorAll('[data-overlay-open]').forEach(node => {
+    node.addEventListener('click', event => {
+      event.stopPropagation();
+      const kind = node.dataset.overlayOpen;
+      if(kind === 'chipDetail') openBattleOverlay('chipDetail', { chipId:node.dataset.chipId });
+      renderApp();
+    });
+  });
+  const battleScene = document.getElementById('battleScene');
+  if(battleScene) battleScene.addEventListener('click', event => {
+    if(event.target !== battleScene || battleInteractionLocked()) return;
+    clearBattleUiState();
+    renderApp();
+  });
+  document.querySelectorAll('[data-battle-space]').forEach(node => {
+    node.addEventListener('click', event => {
+      if(event.target !== node || battleInteractionLocked()) return;
+      const battleUi = getBattleUiState();
+      if(battleUi.preview || battleUi.focusedChipId || battleUi.inspectedChipId){
+        clearBattleUiState();
+        renderApp();
+      }
+    });
+  });
+  document.querySelectorAll('[data-battle-chip]').forEach(node => {
+    const chipId = node.dataset.battleChip;
+    node.addEventListener('click', event => { event.stopPropagation(); handleBattleChipInteraction(chipId); });
+  });
+}
+function attachHandlers(){
+  if(appState.mode === APP_MODES.BATTLE) attachBattleHandlers();
+  else attachSetupHandlers();
+}
+
+/* -------------------------------------------------------------------------- */
+/* Invariant harness                                                          */
+/* -------------------------------------------------------------------------- */
+function assert(condition, message){
+  if(!condition) throw new Error(message);
+}
+function createTestSideSetup(frameId, placements, aiPresetId){
+  const sideSetup = createEmptySideSetup({ frameId, aiPresetId:aiPresetId ?? null });
+  for(const placement of placements){
+    const built = addBuiltInstanceToSide(sideSetup, placement.chipTypeId);
+    sideSetup.placedLayoutBySpaceId[placement.spaceId] = built.chipInstanceId;
+  }
+  return sideSetup;
+}
+function runConstructionInvariantChecks(){
+  const sideSetup = createTestSideSetup('scout', [
+    { chipTypeId:'scout-core', spaceId:'2,2' },
+    { chipTypeId:'cannon', spaceId:'1,2' }
+  ]);
+  const validation = validateSideSetup('player', sideSetup);
+  assert(validation.isValid, 'Construction: expected simple setup to validate.');
+  const illegalResult = createAndPlaceChipInstance(sideSetup, 'cannon', '0,0');
+  assert(!illegalResult.ok, 'Construction: illegal placement should be rejected.');
+}
+function runGeometryInvariantChecks(){
+  const sideSetup = createTestSideSetup('scout', [
+    { chipTypeId:'scout-core', spaceId:'2,2' },
+    { chipTypeId:'cannon', spaceId:'2,1' },
+    { chipTypeId:'bulkhead', spaceId:'2,3' }
+  ]);
+  const enemyFrontier = getFrontierSpaceIds('player', sideSetup);
+  assert(enemyFrontier.includes('2,1'), 'Geometry: forward-most occupied chip should be frontier when attacked by player.');
+  assert(!enemyFrontier.includes('2,2'), 'Geometry: covered interior chip should not be frontier when blocked from the front.');
+
+  const perLaneSetup = createTestSideSetup('scout', [
+    { chipTypeId:'scout-core', spaceId:'2,3' },
+    { chipTypeId:'cannon', spaceId:'2,1' },
+    { chipTypeId:'bulkhead', spaceId:'0,2' }
+  ]);
+  const perLaneFrontier = getFrontierSpaceIds('player', perLaneSetup);
+  assert(perLaneFrontier.includes('2,1'), 'Geometry: forward-most occupied chip in one lane should remain frontier.');
+  assert(perLaneFrontier.includes('0,2'), 'Geometry: recessed lane front chip should still be frontier in its own lane.');
+  assert(!perLaneFrontier.includes('2,3'), 'Geometry: deeper chip behind a lane front should not be frontier.');
+
+  const holeSetup = createTestSideSetup('scout', [
+    { chipTypeId:'scout-core', spaceId:'2,2' },
+    { chipTypeId:'cannon', spaceId:'2,1' },
+    { chipTypeId:'bulkhead', spaceId:'1,2' }
+  ]);
+  const combatSide = createCombatSideStateFromSetup('enemy', holeSetup, buildPowerStateForSide('enemy', holeSetup));
+  const frontChipId = combatSide.chipsById[Object.keys(combatSide.chipsById).find(id => combatSide.chipsById[id].spaceId === '2,1')].chipInstanceId;
+  combatSide.chipsById[frontChipId].hp = 0;
+  combatSide.chipsById[frontChipId].isDisabled = true;
+  const holeFrontier = getFrontierSpaceIds('player', combatSide);
+  assert(holeFrontier.includes('2,2'), 'Geometry: chip behind a disabled frontier chip should become frontier through the breach.');
+  assert(holeFrontier.includes('1,2'), 'Geometry: chip beside a disabled hole should become frontier from side exposure.');
+  assert(holeFrontier.includes('3,1'), 'Geometry: any orthogonally adjacent occupied chip to a disabled hole should become frontier.');
+
+  const emptyGapSetup = createTestSideSetup('scout', [
+    { chipTypeId:'scout-core', spaceId:'2,2' },
+    { chipTypeId:'cannon', spaceId:'2,3' },
+    { chipTypeId:'bulkhead', spaceId:'1,2' }
+  ]);
+  const emptyGapFrontier = getFrontierSpaceIds('player', emptyGapSetup);
+  assert(emptyGapFrontier.includes('2,2'), 'Geometry: forward-most occupied chip remains frontier even with empty spaces ahead.');
+  assert(!emptyGapFrontier.includes('1,2'), 'Geometry: pre-existing empty legal spaces alone do not create side-burrow exposure.');
+}
+function runPowerInvariantChecks(){
+  const sideSetup = createTestSideSetup('scout', [
+    { chipTypeId:'scout-core', spaceId:'2,2' },
+    { chipTypeId:'relay', spaceId:'2,1' },
+    { chipTypeId:'relay', spaceId:'3,1' },
+    { chipTypeId:'pylon-red', spaceId:'1,1' },
+    { chipTypeId:'pylon-red', spaceId:'1,2' }
+  ]);
+  const powerState = buildPowerStateForSide('player', sideSetup);
+  const coreId = sideSetup.placedLayoutBySpaceId['2,2'];
+  const relayId = sideSetup.placedLayoutBySpaceId['3,1'];
+  assert(getPowerColorsForChip(powerState, coreId).filter(color => color === 'red').length === 1, 'Power: duplicate same-color paths should not stack.');
+  assert(getPowerColorsForChip(powerState, relayId).includes('red'), 'Power: relay propagation should carry red through the chain.');
+}
+function runBattleInitInvariantChecks(){
+  const scenario = {
+    scenarioId:'testScenario',
+    name:'Test',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'1,2' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'1,2' }
+    ], 'aggressor')
+  };
+  scenario.playerSetup.isLocked = true;
+  scenario.enemySetup.isLocked = true;
+  const snapshot = { scenario:deepClone(scenario), lockedAtVersion:APP_VERSION };
+  const combatState = initializeBattleFromLockedSnapshot(snapshot);
+  assert(Boolean(combatState), 'Battle init: expected combat state to be created.');
+  prepareNextPlayerRound(combatState);
+  assert(combatState.playerState.currentEnergy === 3, 'Battle init: scout core should seed 3 Energy at player turn start.');
+  combatState.playerState.currentEnergy = 0;
+  assert(snapshot.scenario.playerSetup !== combatState.playerState, 'Battle init: combat state should not reuse setup objects.');
+}
+function runActionInvariantChecks(){
+  const scenario = {
+    scenarioId:'testPreview',
+    name:'Preview',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'1,2' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'bulkhead', spaceId:'2,1' }
+    ], 'aggressor')
+  };
+  scenario.playerSetup.isLocked = true;
+  scenario.enemySetup.isLocked = true;
+  const combatState = initializeBattleFromLockedSnapshot({ scenario:deepClone(scenario), lockedAtVersion:APP_VERSION });
+  prepareNextPlayerRound(combatState);
+  const cannonId = Object.values(combatState.playerState.chipsById).find(chipState => chipState.chipTypeId === 'cannon').chipInstanceId;
+  const legalTargets = getLegalTargetChipIds(combatState, 'player', cannonId);
+  assert(legalTargets.length === 1, 'Actions: preview should expose exactly one legal frontier target in controlled scenario.');
+  const targetChipId = legalTargets[0];
+  const firstAction = buildLegalActionObject(combatState, 'player', cannonId, targetChipId, []);
+  resolveAction(combatState, firstAction);
+  assert(!getUsableActiveChipIds(combatState, 'player').includes(cannonId), 'Actions: active chip should not be usable twice in one turn.');
+  const hpAfterFirstShot = getCombatChipState(combatState, targetChipId).hp;
+  const illegalSecondShot = buildLegalActionObject(combatState, 'player', cannonId, targetChipId, []);
+  resolveAction(combatState, illegalSecondShot);
+  assert(getCombatChipState(combatState, targetChipId).hp === hpAfterFirstShot, 'Actions: illegal second activation should not resolve.');
+
+  const pylonCombatState = initializeBattleFromLockedSnapshot({ scenario:deepClone({
+    scenarioId:'testJammedPylon',
+    name:'Jammed',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'saboteur', spaceId:'1,2' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'3,2' },
+      { chipTypeId:'pylon-red', spaceId:'2,2' }
+    ], 'aggressor')
+  }), lockedAtVersion:APP_VERSION });
+  prepareNextPlayerRound(pylonCombatState);
+  const pylonState = Object.values(pylonCombatState.enemyState.chipsById).find(chipState => getChipDef(chipState.chipTypeId).isPylon);
+  const jamResolution = buildEmptyResolution({ actingChipId:null, actionKind:'hostile', targetChipId:pylonState.chipInstanceId, chosenChipIds:[], affectedSpaceIds:[], affectedChipIds:[pylonState.chipInstanceId], hasRandomOutcome:false });
+  applyStatusEffectToChip(pylonCombatState, pylonState, 'Jammed', 1, 'player', jamResolution);
+  assert(getStatusAmount(pylonState, 'Jammed') === 0, 'Actions: Jammed should not apply to Pylons.');
+
+  const overloadScenario = initializeBattleFromLockedSnapshot({ scenario:deepClone({
+    scenarioId:'testOverload',
+    name:'Overload',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'bulkhead', spaceId:'1,2' },
+      { chipTypeId:'bulkhead', spaceId:'2,1' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' }
+    ], 'aggressor')
+  }), lockedAtVersion:APP_VERSION });
+  const overloadedTarget = Object.values(overloadScenario.playerState.chipsById).find(chipState => chipState.spaceId === '1,2');
+  const adjacentAlly = Object.values(overloadScenario.playerState.chipsById).find(chipState => chipState.spaceId === '2,2');
+  const overloadResolution = buildEmptyResolution({ actingChipId:null, actionKind:'alliedSupport', targetChipId:overloadedTarget.chipInstanceId, chosenChipIds:[], affectedSpaceIds:[], affectedChipIds:[overloadedTarget.chipInstanceId], hasRandomOutcome:false });
+  addStatusEntry(overloadedTarget, 'Overload', 1, { appliedBySideKey:'player' });
+  applyStatusEffectToChip(overloadScenario, overloadedTarget, 'Mark', 1, 'player', overloadResolution);
+  assert(getStatusAmount(adjacentAlly, 'Mark') === 1, 'Actions: Overload should copy non-damage atomic effects to orthogonally adjacent chips.');
+
+  const projectedScenario = initializeBattleFromLockedSnapshot({ scenario:deepClone({
+    scenarioId:'testProjectedResolution',
+    name:'Projected',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'1,2' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'bulkhead', spaceId:'2,1' }
+    ], 'aggressor')
+  }), lockedAtVersion:APP_VERSION });
+  prepareNextPlayerRound(projectedScenario);
+  const projectedCannonId = Object.values(projectedScenario.playerState.chipsById).find(chipState => chipState.chipTypeId === 'cannon').chipInstanceId;
+  const projectedTargetId = getLegalTargetChipIds(projectedScenario, 'player', projectedCannonId)[0];
+  const projected = buildProjectedResolution(projectedScenario, 'player', projectedCannonId, projectedTargetId, []);
+  assert(Array.isArray(projected.newlyExposedChipIds), 'Actions: projected resolution should expose newlyExposedChipIds.');
+  assert(typeof projected.coreStillProtected === 'boolean', 'Actions: projected resolution should include coreStillProtected.');
+}
+function runAiInvariantChecks(){
+  const scenario = {
+    scenarioId:'testAI',
+    name:'AI',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'bulkhead', spaceId:'0,2' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'1,2' }
+    ], 'aggressor')
+  };
+  scenario.playerSetup.isLocked = true;
+  scenario.enemySetup.isLocked = true;
+  const combatState = initializeBattleFromLockedSnapshot({ scenario:deepClone(scenario), lockedAtVersion:APP_VERSION });
+  beginEnemyTurn(combatState);
+  const choice = chooseBestAiAction(combatState, 'aggressor');
+  assert(Boolean(choice), 'AI: expected a legal AI action in controlled scenario.');
+  const committed = buildCommittedEnemyPlanStep(scoreLegalAction(choice, getAiWeights('aggressor'), combatState, 'enemy'));
+  assert(Array.isArray(committed.affectedSpaceIds), 'AI: committed plan should carry affected spaces.');
+}
+
+function runBattleTestShellInvariantChecks(){
+  const scenario = {
+    scenarioId:createScenarioId(),
+    name:'Shell',
+    notes:'',
+    playerSetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'2,1' }
+    ]),
+    enemySetup:createTestSideSetup('scout', [
+      { chipTypeId:'scout-core', spaceId:'2,2' },
+      { chipTypeId:'cannon', spaceId:'2,1' }
+    ], 'aggressor')
+  };
+  const serialized = serializeScenarioForSave(scenario);
+  const compatibilityIssues = getSavedScenarioCompatibilityIssues(serialized);
+  assert(compatibilityIssues.length === 0, 'Battle-test shell: serialized scenario should be compatible.');
+  const loadedScenario = createScenarioFromSerializable(serialized);
+  assert(!loadedScenario.playerSetup.isLocked && !loadedScenario.enemySetup.isLocked, 'Battle-test shell: loaded setups should not remain locked.');
+  const snapshot = { scenario:deepClone(scenario), lockedAtVersion:APP_VERSION, mode:'battleTest' };
+  const combatState = initializeBattleFromLockedSnapshot(snapshot);
+  combatState.playerState.chipsById[Object.keys(combatState.playerState.chipsById)[0]].hp = 1;
+  const freshCombatState = initializeBattleFromLockedSnapshot(snapshot);
+  assert(freshCombatState.playerState.chipsById[Object.keys(freshCombatState.playerState.chipsById)[0]].hp !== 1, 'Battle-test shell: rematch should rebuild fresh combat state.');
+}
+function runAllInvariantChecks(){
+  try{
+    runConstructionInvariantChecks();
+    runGeometryInvariantChecks();
+    runPowerInvariantChecks();
+    runBattleInitInvariantChecks();
+    runActionInvariantChecks();
+    runAiInvariantChecks();
+    runBattleTestShellInvariantChecks();
+    console.info('Chipcraft ' + APP_VERSION + ' invariant checks passed.');
+  }catch(error){
+    console.error('Chipcraft ' + APP_VERSION + ' invariant check failed:', error);
+  }
+}
+
+window.CHIPCRAFT_DEBUG = {
+  appState,
+  getFrontierSpaceIds,
+  buildPowerStateForSide,
+  initializeBattleFromLockedSnapshot,
+  buildTruthfulPreview,
+  chooseBestAiAction,
+  saveScenarioToStorage,
+  loadStoredScenarioCollection,
+  runAllInvariantChecks
+};
+window.addEventListener('resize', () => requestAnimationFrame(solvePieceSize));
+runAllInvariantChecks();
+renderApp();
+</script>
+</body>
+</html>
