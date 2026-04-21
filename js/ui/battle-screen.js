@@ -29,14 +29,25 @@ function renderCombatants(sideState, label, options) {
   `;
 }
 
+function renderReadinessStrip(actionPreview) {
+  if (actionPreview.usable.length === 0) {
+    return '<span class="hud-chip muted">none ready</span>';
+  }
+
+  return actionPreview.usable
+    .slice(0, 5)
+    .map((chip) => `<span class="hud-chip">${chip.chipTypeId.split('.').at(-1)}</span>`)
+    .join('');
+}
+
 export function renderBattleScreen(appState, vm, controls) {
   const battle = appState.combat.current;
   const actionPreview = appState.combat.actionPreview;
   const isPlayerActivation = battle.turnOwner === 'player' && battle.phase === 'activation' && !battle.winner;
   const usableSet = new Set(actionPreview.usable.map((chip) => chip.chipInstanceId));
   const legalTargetSet = new Set(actionPreview.legalTargets.map((target) => target.chipInstanceId));
-  const section = document.createElement('section');
-  section.className = 'panel';
+  const eventTicker = battle.actionLog.at(-1) ?? 'no events yet';
+  const playbackItems = battle.actionLog.slice(-6).map((event) => `<li>${event}</li>`).join('');
 
   const actorButtons = actionPreview.usable
     .map(
@@ -63,55 +74,17 @@ export function renderBattleScreen(appState, vm, controls) {
     `,
     )
     .join('');
-  const playbackItems = battle.actionLog.slice(-6).map((event) => `<li>${event}</li>`).join('');
 
+  const section = document.createElement('section');
+  section.className = 'panel battle-scene';
   section.innerHTML = `
-    <h2>Battle Sandbox</h2>
-    <div class="button-row">
-      <button type="button" class="route-button" data-action="toggle-debug">
-        ${appState.ui.showDebugPanel ? 'Hide Debug' : 'Show Debug'}
-      </button>
+    <div class="top-hud">
+      <div><strong>Round ${battle.round}</strong> • ${battle.turnOwner} • ${battle.phase}</div>
+      <div>Player Energy: <strong>${battle.player.energy}</strong></div>
+      <div class="readiness-strip">${renderReadinessStrip(actionPreview)}</div>
+      <div class="ticker">${eventTicker}</div>
     </div>
-    <p>Round <strong>${battle.round}</strong> · Turn <strong>${battle.turnOwner}</strong> · Phase <strong>${battle.phase}</strong></p>
-    <p>Winner: <strong>${battle.winner ?? 'none'}</strong></p>
-    <div class="button-row">
-      <button type="button" class="route-button" data-action="step">Advance to Player Action</button>
-      <button type="button" class="route-button" data-action="turn">Skip to Next Turn</button>
-      <button type="button" class="route-button" data-action="reset">Reset Battle</button>
-    </div>
-    <div class="button-row">
-      <button type="button" class="route-button" data-action="rematch" ${
-        appState.loop.hasLockedSnapshot ? '' : 'disabled'
-      }>Rematch</button>
-      <button type="button" class="route-button" data-action="edit" ${
-        appState.loop.hasLockedSnapshot ? '' : 'disabled'
-      }>Edit Scenario</button>
-      <button type="button" class="route-button" data-action="new">New Scenario</button>
-      <button type="button" class="route-button" data-action="save">Save Scenario</button>
-      <button type="button" class="route-button" data-action="load">Load Scenario</button>
-    </div>
-    <p>Scenario status: <strong>${appState.loop.persistenceNotice || 'none'}</strong></p>
-    <h3>Player Action</h3>
-    <p>${isPlayerActivation ? 'Select actor, then target, then confirm.' : 'Waiting for player activation phase.'}</p>
-    <div class="button-row">${actorButtons || '<span class="hint-text">No usable active chips.</span>'}</div>
-    <div class="button-row">${targetButtons || '<span class="hint-text">No legal targets selected.</span>'}</div>
-    <div class="button-row">
-      <button type="button" class="route-button" data-action="confirm" ${
-        isPlayerActivation && actionPreview.projected ? '' : 'disabled'
-      }>Confirm Action</button>
-      <button type="button" class="route-button" data-action="clear">Clear Selection</button>
-    </div>
-    <p>Projected damage: <strong>${actionPreview.projected?.damage ?? 0}</strong> · Predicted HP: <strong>${
-      actionPreview.projected?.predictedTargetHp ?? 'n/a'
-    }</strong></p>
-    <h3>Playback</h3>
-    <ul class="playback-list">${playbackItems || '<li>none</li>'}</ul>
-    ${
-      appState.ui.showDebugPanel
-        ? `<p>AI Choice Preview: <strong>${vm.aiChoice}</strong> (score ${vm.aiScore})</p>
-    <p>Recent events: <strong>${vm.aiLogTail || vm.combatLogTail || 'none'}</strong></p>`
-        : ''
-    }
+
     <div class="battle-grid">
       ${renderCombatants(battle.player, 'Player Ship', {
         sideKey: 'player',
@@ -127,6 +100,53 @@ export function renderBattleScreen(appState, vm, controls) {
         selectedActorId: appState.ui.battleActingChipId,
         selectedTargetId: appState.ui.battleTargetChipId,
       })}
+    </div>
+
+    <div class="battle-context-row">
+      <section class="panel panel-sub battle-flyout-anchor">
+        <h3>Action Context</h3>
+        <p>${isPlayerActivation ? 'Select actor, then target, then confirm.' : 'Waiting for player activation phase.'}</p>
+        <div class="button-row">${actorButtons || '<span class="hint-text">No usable active chips.</span>'}</div>
+        <div class="button-row">${targetButtons || '<span class="hint-text">No legal targets selected.</span>'}</div>
+        <div class="button-row">
+          <button type="button" class="route-button" data-action="confirm" ${
+            isPlayerActivation && actionPreview.projected ? '' : 'disabled'
+          }>Confirm Action</button>
+          <button type="button" class="route-button" data-action="clear">Cancel</button>
+        </div>
+        <p>Projected damage: <strong>${actionPreview.projected?.damage ?? 0}</strong> · Predicted HP: <strong>${
+          actionPreview.projected?.predictedTargetHp ?? 'n/a'
+        }</strong></p>
+      </section>
+
+      <section class="panel panel-sub battle-flyout-anchor">
+        <h3>Playback</h3>
+        <ul class="playback-list">${playbackItems || '<li>none</li>'}</ul>
+        ${
+          appState.ui.showDebugPanel
+            ? `<p>AI Choice Preview: <strong>${vm.aiChoice}</strong> (score ${vm.aiScore})</p>
+               <p>Recent events: <strong>${vm.aiLogTail || vm.combatLogTail || 'none'}</strong></p>`
+            : ''
+        }
+      </section>
+    </div>
+
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="toggle-debug">
+        ${appState.ui.showDebugPanel ? 'Hide Debug' : 'Show Debug'}
+      </button>
+      <button type="button" class="route-button" data-action="step">Advance to Player Action</button>
+      <button type="button" class="route-button" data-action="turn">Skip to Next Turn</button>
+      <button type="button" class="route-button" data-action="reset">Reset Battle</button>
+      <button type="button" class="route-button" data-action="rematch" ${
+        appState.loop.hasLockedSnapshot ? '' : 'disabled'
+      }>Rematch</button>
+      <button type="button" class="route-button" data-action="edit" ${
+        appState.loop.hasLockedSnapshot ? '' : 'disabled'
+      }>Edit Scenario</button>
+      <button type="button" class="route-button" data-action="new">New Scenario</button>
+      <button type="button" class="route-button" data-action="save">Save Scenario</button>
+      <button type="button" class="route-button" data-action="load">Load Scenario</button>
     </div>
   `;
 
