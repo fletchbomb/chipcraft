@@ -1,10 +1,17 @@
-function renderCombatants(sideState, label) {
+function renderCombatants(sideState, label, options) {
+  const { sideKey, usableSet, legalTargetSet, selectedActorId, selectedTargetId } = options;
   const chips = Object.values(sideState.chipsById);
   const rows = chips
     .map((chip) => {
       const hpWidth = chip.maxHp > 0 ? Math.round((chip.hp / chip.maxHp) * 100) : 0;
+      const classes = ['combatant-row'];
+      if (chip.isDisabled) classes.push('is-disabled');
+      if (sideKey === 'player' && usableSet.has(chip.chipInstanceId)) classes.push('is-usable');
+      if (sideKey === 'enemy' && legalTargetSet.has(chip.chipInstanceId)) classes.push('is-legal-target');
+      if (chip.chipInstanceId === selectedActorId) classes.push('is-selected-actor');
+      if (chip.chipInstanceId === selectedTargetId) classes.push('is-selected-target');
       return `
-        <li class="combatant-row ${chip.isDisabled ? 'is-disabled' : ''}">
+        <li class="${classes.join(' ')}">
           <div><strong>${chip.chipTypeId}</strong> <span class="chip-id">(${chip.chipInstanceId})</span></div>
           <div class="hp-track"><span class="hp-fill" style="width:${hpWidth}%"></span></div>
           <div class="hp-label">${chip.hp}/${chip.maxHp} HP</div>
@@ -26,6 +33,8 @@ export function renderBattleScreen(appState, vm, controls) {
   const battle = appState.combat.current;
   const actionPreview = appState.combat.actionPreview;
   const isPlayerActivation = battle.turnOwner === 'player' && battle.phase === 'activation' && !battle.winner;
+  const usableSet = new Set(actionPreview.usable.map((chip) => chip.chipInstanceId));
+  const legalTargetSet = new Set(actionPreview.legalTargets.map((target) => target.chipInstanceId));
   const section = document.createElement('section');
   section.className = 'panel';
 
@@ -104,8 +113,20 @@ export function renderBattleScreen(appState, vm, controls) {
         : ''
     }
     <div class="battle-grid">
-      ${renderCombatants(battle.player, 'Player Ship')}
-      ${renderCombatants(battle.enemy, 'Enemy Ship')}
+      ${renderCombatants(battle.player, 'Player Ship', {
+        sideKey: 'player',
+        usableSet,
+        legalTargetSet,
+        selectedActorId: appState.ui.battleActingChipId,
+        selectedTargetId: appState.ui.battleTargetChipId,
+      })}
+      ${renderCombatants(battle.enemy, 'Enemy Ship', {
+        sideKey: 'enemy',
+        usableSet,
+        legalTargetSet,
+        selectedActorId: appState.ui.battleActingChipId,
+        selectedTargetId: appState.ui.battleTargetChipId,
+      })}
     </div>
   `;
 

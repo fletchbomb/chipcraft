@@ -174,6 +174,24 @@ body {
   padding: 8px;
 }
 
+.combatant-row.is-usable {
+  border-color: #4ea8ff;
+  box-shadow: 0 0 0 1px rgba(78, 168, 255, 0.35);
+}
+
+.combatant-row.is-legal-target {
+  border-color: #ffc55e;
+  box-shadow: 0 0 0 1px rgba(255, 197, 94, 0.35);
+}
+
+.combatant-row.is-selected-actor {
+  background: rgba(78, 168, 255, 0.12);
+}
+
+.combatant-row.is-selected-target {
+  background: rgba(255, 197, 94, 0.15);
+}
+
 .combatant-row.is-disabled {
   opacity: 0.55;
 }
