@@ -28,9 +28,9 @@ function getValidationGuidance(appState) {
   return 'Both setups are locked and valid. Launch battle when ready.';
 }
 
-function createBoardSection(appState, controls) {
+function createRebuildScene(appState, controls) {
   const section = document.createElement('section');
-  section.className = 'panel panel-sub';
+  section.className = 'panel rebuild-scene';
 
   const selectedSide = appState.ui.selectedSide;
   const selectedChipTypeId = appState.ui.selectedChipTypeId;
@@ -39,62 +39,54 @@ function createBoardSection(appState, controls) {
   const sideSetup = appState.scenario[`${selectedSide}Setup`];
   const frame = appState.content.frames.find((f) => f.id === sideSetup.frameId);
   const legalSet = new Set(frame.legalSpaces.map(([c, r]) => `${c},${r}`));
-
   const builtById = new Map(sideSetup.builtChipInstances.map((chip) => [chip.chipInstanceId, chip]));
-
   const maxCol = Math.max(...frame.legalSpaces.map(([col]) => col));
   const maxRow = Math.max(...frame.legalSpaces.map(([, row]) => row));
 
   section.innerHTML = `
-    <h2>Interactive Setup Board</h2>
-    <p>Selected side: <strong>${selectedSide}</strong></p>
-    <p>Selected chip type: <strong>${selectedChipTypeId}</strong></p>
-    <p>Selected side locked: <strong>${isSelectedLocked}</strong></p>
+    <div class="rebuild-header">
+      <div>
+        <h2>Rebuild Surface</h2>
+        <p>Editing: <strong>${selectedSide}</strong> · Locked: <strong>${isSelectedLocked}</strong></p>
+      </div>
+      <div class="button-row">
+        <button type="button" class="route-button${selectedSide === 'player' ? ' is-active' : ''}" data-side="player">Player</button>
+        <button type="button" class="route-button${selectedSide === 'enemy' ? ' is-active' : ''}" data-side="enemy">Enemy</button>
+      </div>
+    </div>
+    <div class="rebuild-body">
+      <section class="rebuild-board-wrap">
+        <div class="board-grid rebuild-board" data-board></div>
+      </section>
+      <section class="rebuild-inventory">
+        <h3>Chip Inventory</h3>
+        <div class="chip-palette" data-palette></div>
+      </section>
+    </div>
   `;
 
-  const sideButtons = document.createElement('div');
-  sideButtons.className = 'button-row';
-  for (const sideKey of ['player', 'enemy']) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `route-button${selectedSide === sideKey ? ' is-active' : ''}`;
-    btn.textContent = sideKey;
-    btn.addEventListener('click', () => controls.selectSide(sideKey));
-    sideButtons.appendChild(btn);
-  }
-  section.appendChild(sideButtons);
+  section.querySelectorAll('[data-side]').forEach((button) => {
+    button.addEventListener('click', () => controls.selectSide(button.dataset.side));
+  });
 
-  const chipButtons = document.createElement('div');
-  chipButtons.className = 'button-row';
-  for (const chip of appState.content.chips) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `route-button${selectedChipTypeId === chip.id ? ' is-active' : ''}`;
-    btn.textContent = createChipTypeLabel(chip.id);
-    btn.addEventListener('click', () => controls.selectChipType(chip.id));
-    chipButtons.appendChild(btn);
-  }
-  section.appendChild(chipButtons);
-
-  const board = document.createElement('div');
-  board.className = 'board-grid';
-  board.style.gridTemplateColumns = `repeat(${maxCol + 1}, 42px)`;
+  const board = section.querySelector('[data-board]');
+  board.style.gridTemplateColumns = `repeat(${maxCol + 1}, 44px)`;
 
   for (let row = 0; row <= maxRow; row += 1) {
     for (let col = 0; col <= maxCol; col += 1) {
       const key = `${col},${row}`;
       const isLegal = legalSet.has(key);
+      const occupantId = sideSetup.placedChipIdsBySpaceKey[key];
 
       const cell = document.createElement('button');
       cell.type = 'button';
-      cell.className = `board-cell${isLegal ? ' is-legal' : ''}`;
+      const previewOpen = isLegal && !occupantId && !isSelectedLocked;
+      cell.className = `board-cell${isLegal ? ' is-legal' : ''}${previewOpen ? ' is-preview' : ''}`;
       cell.disabled = !isLegal;
 
-      const occupantId = sideSetup.placedChipIdsBySpaceKey[key];
       if (occupantId) {
         const built = builtById.get(occupantId);
-        const shortLabel = built ? built.chipTypeId.split('.').at(-1).toUpperCase() : 'X';
-        cell.textContent = shortLabel;
+        cell.textContent = built ? built.chipTypeId.split('.').at(-1).toUpperCase() : 'X';
       }
 
       if (isLegal && !isSelectedLocked) {
@@ -112,7 +104,16 @@ function createBoardSection(appState, controls) {
     }
   }
 
-  section.appendChild(board);
+  const palette = section.querySelector('[data-palette]');
+  for (const chip of appState.content.chips) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `route-button chip-choice${selectedChipTypeId === chip.id ? ' is-active' : ''}`;
+    btn.textContent = createChipTypeLabel(chip.id);
+    btn.addEventListener('click', () => controls.selectChipType(chip.id));
+    palette.appendChild(btn);
+  }
+
   return section;
 }
 
@@ -136,32 +137,11 @@ export function renderBuildScreen(appState, controls) {
   const panel = document.createElement('section');
   panel.className = 'panel';
   panel.innerHTML = `
-    <h1>Chipcraft Battle Test — Interactive Foundations</h1>
+    <h1>Chipcraft Battle Test — Rebuild</h1>
     <div class="button-row">
       <button type="button" class="route-button" data-action="toggle-debug">
         ${appState.ui.showDebugPanel ? 'Hide Debug' : 'Show Debug'}
       </button>
-    </div>
-    ${appState.ui.showDebugPanel ? `<p>Route: <strong>${vm.route}</strong></p>
-    <p>Mode: <strong>${vm.mode}</strong></p>
-    <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
-    <p>Chip types loaded: <strong>${vm.chipCount}</strong></p>` : ''}
-
-    <h2>Construction + Validation</h2>
-    <p>Player built chips: <strong>${vm.playerBuiltCount}</strong>, placed: <strong>${vm.playerPlacedCount}</strong></p>
-    <p>Enemy built chips: <strong>${vm.enemyBuiltCount}</strong>, placed: <strong>${vm.enemyPlacedCount}</strong></p>
-    <p>Player launch valid: <strong>${vm.playerLaunchValid}</strong></p>
-    <p>Enemy launch valid: <strong>${vm.enemyLaunchValid}</strong></p>
-    <p>Setup phase: <strong>${setupPhaseLabel}</strong></p>
-    <p class="hint-text"><strong>Guidance:</strong> ${guidanceText}</p>
-
-    ${appState.ui.showDebugPanel ? `<p><strong>Player launch errors</strong></p>
-    <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
-
-    <p><strong>Enemy launch errors</strong></p>
-    <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>` : ''}
-
-    <div class="button-row">
       <button type="button" class="route-button" data-action="lock-player">${playerLockLabel}</button>
       <button type="button" class="route-button" data-action="lock-enemy">${enemyLockLabel}</button>
       <button type="button" class="route-button" data-action="launch" ${appState.setup.canLaunch ? '' : 'disabled'}>
@@ -169,12 +149,14 @@ export function renderBuildScreen(appState, controls) {
       </button>
     </div>
 
+    <p><strong>Setup phase:</strong> ${setupPhaseLabel} · <strong>Guidance:</strong> ${guidanceText}</p>
+    <p><strong>Scenario status:</strong> ${appState.loop.persistenceNotice || 'none'}</p>
+
     <div class="button-row">
       <button type="button" class="route-button" data-action="save-scenario">Save Scenario</button>
       <button type="button" class="route-button" data-action="load-scenario">Load Scenario</button>
       <button type="button" class="route-button" data-action="new-scenario">New Scenario</button>
     </div>
-    <p>Scenario status: <strong>${appState.loop.persistenceNotice || 'none'}</strong></p>
 
     <label class="field-label">
       Enemy AI Preset
@@ -183,7 +165,14 @@ export function renderBuildScreen(appState, controls) {
       </select>
     </label>
 
-    <span class="pill">Board clicks place selected chip type (disabled while side is locked)</span>
+    ${
+      appState.ui.showDebugPanel
+        ? `<p><strong>Player launch errors</strong></p>
+           <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
+           <p><strong>Enemy launch errors</strong></p>
+           <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>`
+        : ''
+    }
   `;
 
   panel.querySelector('[data-action="toggle-debug"]')?.addEventListener('click', controls.toggleDebug);
@@ -211,6 +200,6 @@ export function renderBuildScreen(appState, controls) {
     controls.chooseAiPreset(event.target.value);
   });
 
-  panel.appendChild(createBoardSection(appState, controls));
+  panel.appendChild(createRebuildScene(appState, controls));
   return panel;
 }
