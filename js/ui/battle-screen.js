@@ -54,6 +54,7 @@ export function renderBattleScreen(appState, vm, controls) {
     `,
     )
     .join('');
+  const playbackItems = battle.actionLog.slice(-6).map((event) => `<li>${event}</li>`).join('');
 
   section.innerHTML = `
     <h2>Battle Sandbox</h2>
@@ -89,6 +90,8 @@ export function renderBattleScreen(appState, vm, controls) {
     <p>Projected damage: <strong>${actionPreview.projected?.damage ?? 0}</strong> · Predicted HP: <strong>${
       actionPreview.projected?.predictedTargetHp ?? 'n/a'
     }</strong></p>
+    <h3>Playback</h3>
+    <ul class="playback-list">${playbackItems || '<li>none</li>'}</ul>
     <p>AI Choice Preview: <strong>${vm.aiChoice}</strong> (score ${vm.aiScore})</p>
     <p>Recent events: <strong>${vm.aiLogTail || vm.combatLogTail || 'none'}</strong></p>
     <div class="battle-grid">

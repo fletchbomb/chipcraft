@@ -12,6 +12,22 @@ function createChipTypeLabel(chipTypeId) {
   return chipTypeId.replaceAll('.', ' · ');
 }
 
+function getValidationGuidance(appState) {
+  if (!appState.validation.playerLaunch.isValid) {
+    return 'Player setup is invalid. Place exactly one legal Core and ensure placements are legal.';
+  }
+  if (!appState.validation.enemyLaunch.isValid) {
+    return 'Enemy setup is invalid. Place exactly one legal Core and ensure placements are legal.';
+  }
+  if (!appState.setup.playerLocked) {
+    return 'Player setup is valid. Lock Player Setup to continue.';
+  }
+  if (!appState.setup.enemyLocked) {
+    return 'Enemy setup is valid. Lock Enemy Setup to enable launch.';
+  }
+  return 'Both setups are locked and valid. Launch battle when ready.';
+}
+
 function createBoardSection(appState, controls) {
   const section = document.createElement('section');
   section.className = 'panel panel-sub';
@@ -105,6 +121,7 @@ export function renderBuildScreen(appState, controls) {
   const playerLockLabel = appState.setup.playerLocked ? 'Unlock Player Setup' : 'Lock Player Setup';
   const enemyLockLabel = appState.setup.enemyLocked ? 'Unlock Enemy Setup' : 'Lock Enemy Setup';
   const setupPhaseLabel = appState.setup.phase;
+  const guidanceText = getValidationGuidance(appState);
 
   const aiOptions = appState.content.aiPresets
     .map(
@@ -131,6 +148,7 @@ export function renderBuildScreen(appState, controls) {
     <p>Player launch valid: <strong>${vm.playerLaunchValid}</strong></p>
     <p>Enemy launch valid: <strong>${vm.enemyLaunchValid}</strong></p>
     <p>Setup phase: <strong>${setupPhaseLabel}</strong></p>
+    <p class="hint-text"><strong>Guidance:</strong> ${guidanceText}</p>
 
     <p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
