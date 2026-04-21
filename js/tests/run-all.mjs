@@ -6,6 +6,7 @@ const tests = [
   'js/tests/projection-ai-consistency.mjs',
   'js/tests/construction-validation-cases.mjs',
   'js/tests/persistence-safety-cases.mjs',
+  'js/tests/ui-model-smoke.mjs',
 ];
 
 let failed = false;
