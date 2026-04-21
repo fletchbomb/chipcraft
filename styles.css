@@ -51,6 +51,16 @@ body {
   z-index: 1;
 }
 
+.nav-compact {
+  padding: 10px 12px;
+  background: color-mix(in srgb, var(--panel) 80%, black 20%);
+}
+
+.nav-compact h2 {
+  margin-bottom: 6px;
+  font-size: 0.9rem;
+}
+
 .button-row {
   display: flex;
   gap: 8px;
@@ -334,6 +344,13 @@ body {
   color: var(--muted);
 }
 
+.status-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
 .ai-select {
   appearance: auto;
 }
@@ -349,4 +366,19 @@ body {
   padding-left: 18px;
   display: grid;
   gap: 4px;
+}
+
+.utility-menu {
+  margin: 4px 0 8px;
+}
+
+.utility-menu summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 0.9rem;
+  margin-bottom: 6px;
+}
+
+.utility-buttons {
+  margin-top: 6px;
 }

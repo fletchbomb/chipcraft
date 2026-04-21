@@ -149,21 +149,27 @@ export function renderBuildScreen(appState, controls) {
       </button>
     </div>
 
-    <p><strong>Setup phase:</strong> ${setupPhaseLabel} · <strong>Guidance:</strong> ${guidanceText}</p>
-    <p><strong>Scenario status:</strong> ${appState.loop.persistenceNotice || 'none'}</p>
-
-    <div class="button-row">
-      <button type="button" class="route-button" data-action="save-scenario">Save Scenario</button>
-      <button type="button" class="route-button" data-action="load-scenario">Load Scenario</button>
-      <button type="button" class="route-button" data-action="new-scenario">New Scenario</button>
+    <div class="status-chips">
+      <span class="hud-chip">phase: ${setupPhaseLabel}</span>
+      <span class="hud-chip muted">${guidanceText}</span>
+      <span class="hud-chip muted">status: ${appState.loop.persistenceNotice || 'none'}</span>
     </div>
 
-    <label class="field-label">
-      Enemy AI Preset
-      <select class="route-button ai-select" data-action="ai-preset">
-        ${aiOptions}
-      </select>
-    </label>
+    <details class="utility-menu">
+      <summary>Scenario Tools</summary>
+      <div class="button-row utility-buttons">
+        <button type="button" class="route-button" data-action="save-scenario">Save Scenario</button>
+        <button type="button" class="route-button" data-action="load-scenario">Load Scenario</button>
+        <button type="button" class="route-button" data-action="new-scenario">New Scenario</button>
+      </div>
+
+      <label class="field-label">
+        Enemy AI Preset
+        <select class="route-button ai-select" data-action="ai-preset">
+          ${aiOptions}
+        </select>
+      </label>
+    </details>
 
     ${
       appState.ui.showDebugPanel

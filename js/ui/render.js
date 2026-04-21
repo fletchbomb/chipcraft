@@ -27,11 +27,10 @@ function renderMetaPanel(appState) {
 
 function renderNav(appState, controls) {
   const nav = document.createElement('section');
-  nav.className = 'panel panel-sub nav-panel';
+  nav.className = 'panel panel-sub nav-panel nav-compact';
 
   nav.innerHTML = `
-    <h2>Mode Surface</h2>
-    <p>Current route: <strong>${appState.route}</strong></p>
+    <h2>Mode</h2>
   `;
 
   const buttonRow = document.createElement('div');

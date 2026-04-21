@@ -44,6 +44,7 @@ export function renderBattleScreen(appState, vm, controls) {
   const battle = appState.combat.current;
   const actionPreview = appState.combat.actionPreview;
   const isPlayerActivation = battle.turnOwner === 'player' && battle.phase === 'activation' && !battle.winner;
+  const showAdvance = !isPlayerActivation && !battle.winner;
   const usableSet = new Set(actionPreview.usable.map((chip) => chip.chipInstanceId));
   const legalTargetSet = new Set(actionPreview.legalTargets.map((target) => target.chipInstanceId));
   const eventTicker = battle.actionLog.at(-1) ?? 'no events yet';
@@ -105,7 +106,7 @@ export function renderBattleScreen(appState, vm, controls) {
     <div class="battle-context-row">
       <section class="panel panel-sub battle-flyout-anchor">
         <h3>Action Context</h3>
-        <p>${isPlayerActivation ? 'Select actor, then target, then confirm.' : 'Waiting for player activation phase.'}</p>
+        <p>${isPlayerActivation ? 'Pick actor → target → confirm.' : 'Waiting for player activation.'}</p>
         <div class="button-row">${actorButtons || '<span class="hint-text">No usable active chips.</span>'}</div>
         <div class="button-row">${targetButtons || '<span class="hint-text">No legal targets selected.</span>'}</div>
         <div class="button-row">
@@ -135,18 +136,27 @@ export function renderBattleScreen(appState, vm, controls) {
       <button type="button" class="route-button" data-action="toggle-debug">
         ${appState.ui.showDebugPanel ? 'Hide Debug' : 'Show Debug'}
       </button>
-      <button type="button" class="route-button" data-action="step">Advance to Player Action</button>
-      <button type="button" class="route-button" data-action="turn">Skip to Next Turn</button>
-      <button type="button" class="route-button" data-action="reset">Reset Battle</button>
-      <button type="button" class="route-button" data-action="rematch" ${
-        appState.loop.hasLockedSnapshot ? '' : 'disabled'
-      }>Rematch</button>
-      <button type="button" class="route-button" data-action="edit" ${
-        appState.loop.hasLockedSnapshot ? '' : 'disabled'
-      }>Edit Scenario</button>
-      <button type="button" class="route-button" data-action="new">New Scenario</button>
-      <button type="button" class="route-button" data-action="save">Save Scenario</button>
-      <button type="button" class="route-button" data-action="load">Load Scenario</button>
+      ${
+        showAdvance
+          ? '<button type="button" class="route-button" data-action="step">Advance to Player Action</button>'
+          : ''
+      }
+      <details class="utility-menu">
+        <summary>Battle Tools</summary>
+        <div class="button-row utility-buttons">
+          <button type="button" class="route-button" data-action="turn">Skip to Next Turn</button>
+          <button type="button" class="route-button" data-action="reset">Reset Battle</button>
+          <button type="button" class="route-button" data-action="rematch" ${
+            appState.loop.hasLockedSnapshot ? '' : 'disabled'
+          }>Rematch</button>
+          <button type="button" class="route-button" data-action="edit" ${
+            appState.loop.hasLockedSnapshot ? '' : 'disabled'
+          }>Edit Scenario</button>
+          <button type="button" class="route-button" data-action="new">New Scenario</button>
+          <button type="button" class="route-button" data-action="save">Save Scenario</button>
+          <button type="button" class="route-button" data-action="load">Load Scenario</button>
+        </div>
+      </details>
     </div>
   `;
 
