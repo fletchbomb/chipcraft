@@ -137,10 +137,15 @@ export function renderBuildScreen(appState, controls) {
   panel.className = 'panel';
   panel.innerHTML = `
     <h1>Chipcraft Battle Test — Interactive Foundations</h1>
-    <p>Route: <strong>${vm.route}</strong></p>
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="toggle-debug">
+        ${appState.ui.showDebugPanel ? 'Hide Debug' : 'Show Debug'}
+      </button>
+    </div>
+    ${appState.ui.showDebugPanel ? `<p>Route: <strong>${vm.route}</strong></p>
     <p>Mode: <strong>${vm.mode}</strong></p>
     <p>Frames loaded: <strong>${vm.frameCount}</strong></p>
-    <p>Chip types loaded: <strong>${vm.chipCount}</strong></p>
+    <p>Chip types loaded: <strong>${vm.chipCount}</strong></p>` : ''}
 
     <h2>Construction + Validation</h2>
     <p>Player built chips: <strong>${vm.playerBuiltCount}</strong>, placed: <strong>${vm.playerPlacedCount}</strong></p>
@@ -150,11 +155,11 @@ export function renderBuildScreen(appState, controls) {
     <p>Setup phase: <strong>${setupPhaseLabel}</strong></p>
     <p class="hint-text"><strong>Guidance:</strong> ${guidanceText}</p>
 
-    <p><strong>Player launch errors</strong></p>
+    ${appState.ui.showDebugPanel ? `<p><strong>Player launch errors</strong></p>
     <ul>${renderErrorList(vm.playerLaunchErrors)}</ul>
 
     <p><strong>Enemy launch errors</strong></p>
-    <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>
+    <ul>${renderErrorList(vm.enemyLaunchErrors)}</ul>` : ''}
 
     <div class="button-row">
       <button type="button" class="route-button" data-action="lock-player">${playerLockLabel}</button>
@@ -181,6 +186,7 @@ export function renderBuildScreen(appState, controls) {
     <span class="pill">Board clicks place selected chip type (disabled while side is locked)</span>
   `;
 
+  panel.querySelector('[data-action="toggle-debug"]')?.addEventListener('click', controls.toggleDebug);
   panel.querySelector('[data-action="lock-player"]')?.addEventListener('click', () => {
     if (appState.setup.playerLocked) {
       controls.unlockSide('player');

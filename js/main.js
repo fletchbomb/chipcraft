@@ -18,6 +18,7 @@ import {
   setEnemyAiPreset,
   setUiSelection,
   stepBattlePhase,
+  toggleDebugPanel,
   unlockSetupSide,
 } from './app/state.js';
 import { renderApp } from './ui/render.js';
@@ -136,6 +137,11 @@ function loadSavedScenario() {
   render();
 }
 
+function toggleDebug() {
+  appState = toggleDebugPanel(appState);
+  render();
+}
+
 function render() {
   renderApp(root, appState, {
     setRoute,
@@ -158,6 +164,7 @@ function render() {
     startNewScenario,
     saveCurrentScenario,
     loadSavedScenario,
+    toggleDebug,
     routes: APP_ROUTES,
   });
 }

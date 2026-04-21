@@ -58,6 +58,11 @@ export function renderBattleScreen(appState, vm, controls) {
 
   section.innerHTML = `
     <h2>Battle Sandbox</h2>
+    <div class="button-row">
+      <button type="button" class="route-button" data-action="toggle-debug">
+        ${appState.ui.showDebugPanel ? 'Hide Debug' : 'Show Debug'}
+      </button>
+    </div>
     <p>Round <strong>${battle.round}</strong> · Turn <strong>${battle.turnOwner}</strong> · Phase <strong>${battle.phase}</strong></p>
     <p>Winner: <strong>${battle.winner ?? 'none'}</strong></p>
     <div class="button-row">
@@ -92,14 +97,19 @@ export function renderBattleScreen(appState, vm, controls) {
     }</strong></p>
     <h3>Playback</h3>
     <ul class="playback-list">${playbackItems || '<li>none</li>'}</ul>
-    <p>AI Choice Preview: <strong>${vm.aiChoice}</strong> (score ${vm.aiScore})</p>
-    <p>Recent events: <strong>${vm.aiLogTail || vm.combatLogTail || 'none'}</strong></p>
+    ${
+      appState.ui.showDebugPanel
+        ? `<p>AI Choice Preview: <strong>${vm.aiChoice}</strong> (score ${vm.aiScore})</p>
+    <p>Recent events: <strong>${vm.aiLogTail || vm.combatLogTail || 'none'}</strong></p>`
+        : ''
+    }
     <div class="battle-grid">
       ${renderCombatants(battle.player, 'Player Ship')}
       ${renderCombatants(battle.enemy, 'Enemy Ship')}
     </div>
   `;
 
+  section.querySelector('[data-action="toggle-debug"]')?.addEventListener('click', controls.toggleDebug);
   section.querySelector('[data-action="step"]')?.addEventListener('click', controls.stepBattle);
   section.querySelector('[data-action="turn"]')?.addEventListener('click', controls.skipToNextTurn);
   section.querySelector('[data-action="reset"]')?.addEventListener('click', controls.resetBattle);

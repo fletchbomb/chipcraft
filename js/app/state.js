@@ -309,6 +309,7 @@ export function createInitialAppState() {
     playerLocked: false,
     enemyLocked: false,
     enemyAiPresetId: AI_PRESET_IDS.AGGRESSOR,
+    showDebugPanel: false,
     battleActingChipId: null,
     battleTargetChipId: null,
     lockedScenarioSnapshot: null,
@@ -334,6 +335,18 @@ export function setUiSelection(appState, patch) {
       ...appState.ui,
       ...patch,
       selectedSide,
+    },
+  });
+}
+
+export function toggleDebugPanel(appState) {
+  return deriveState({
+    route: appState.route,
+    content: appState.content,
+    scenario: appState.scenario,
+    ui: {
+      ...appState.ui,
+      showDebugPanel: !appState.ui.showDebugPanel,
     },
   });
 }
